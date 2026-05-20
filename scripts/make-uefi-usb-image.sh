@@ -111,54 +111,14 @@ rsync -aHAX --numeric-ids \
   --exclude='/run/*' \
   "$BUILDROOT_DIR/" "$ROOT_MNT/"
 
-echo "==> Installing BOS binary"
-install -D -m 0755 "$BOS_BIN" "$ROOT_MNT/usr/local/bin/bos"
+ROOT_PARTUUID="$(blkid -s PARTUUID -o value "$ROOT_PART")"
+if [ -z "$ROOT_PARTUUID" ]; then
+  echo "Could not read root PARTUUID"
+  exit 1
+fi
 
-echo "==> Installing kernel"
-install -D -m 0644 "$KERNEL" "$ROOT_MNT/boot/bzImage"
-
-echo "==> Creating runtime directories"
-mkdir -p "$ROOT_MNT"/{dev,proc,sys,tmp,run,var/log,boot/efi}
-chmod 1777 "$ROOT_MNT/tmp"
-
-
-echo "==> Installing DHCP resolver script"
-mkdir -p "$ROOT_MNT/usr/share/udhcpc"
-
-cat > "$ROOT_MNT/usr/share/udhcpc/default.script" <<'EOF'
-#!/bin/sh
-
-case "$1" in
-  deconfig)
-    ifconfig "$interface" 0.0.0.0
-    ;;
-
-  bound|renew)
-    ifconfig "$interface" "$ip" netmask "$subnet"
-
-    if [ -n "$router" ]; then
-      route del default 2>/dev/null || true
-      for r in $router; do
-        route add default gw "$r" dev "$interface"
-        break
-      done
-    fi
-
-    : > /etc/resolv.conf
-    for dns in $dns; do
-      echo "nameserver $dns" >> /etc/resolv.conf
-    done
-    ;;
-esac
-
-exit 0
-EOF
-
-chmod +x "$ROOT_MNT/usr/share/udhcpc/default.script"
-
-echo "==> Configuring BusyBox init to launch BOS directly"
+echo "==> Overriding inittab for BOS appliance"
 cat > "$ROOT_MNT/etc/inittab" <<'EOF'
-# BOS appliance BusyBox init
 ::sysinit:/bin/mount -t proc proc /proc
 ::sysinit:/bin/mount -t sysfs sysfs /sys
 ::sysinit:/bin/mount -t devtmpfs devtmpfs /dev
@@ -174,24 +134,16 @@ cat > "$ROOT_MNT/etc/inittab" <<'EOF'
 ::sysinit:/sbin/udhcpc -i eth0 -s /usr/share/udhcpc/default.script
 ::sysinit:/etc/init.d/rcS
 
-# BOS owns the console. No login shell.
 console::respawn:/usr/local/bin/bos
 
 ::shutdown:/etc/init.d/rcK
 ::shutdown:/bin/umount -a -r
 EOF
 
-echo "bos" > "$ROOT_MNT/etc/hostname"
+echo "==> Installing BOS binary"
+install -D -m 0755 "$BOS_BIN" "$ROOT_MNT/usr/local/bin/bos"
 
-cat > "$ROOT_MNT/etc/fstab" <<'EOF'
-proc      /proc     proc    defaults          0 0
-sysfs     /sys      sysfs   defaults          0 0
-devtmpfs  /dev      devtmpfs defaults         0 0
-devpts    /dev/pts  devpts  defaults          0 0
-tmpfs     /run      tmpfs   mode=0755,nosuid,nodev 0 0
-tmpfs     /tmp      tmpfs   mode=1777,nosuid,nodev 0 0
-tmpfs     /var/log  tmpfs   mode=0755,nosuid,nodev 0 0
-EOF
+echo "==> Installing direct UKI bootloader, no GRUB"
 
 ROOT_PARTUUID="$(blkid -s PARTUUID -o value "$ROOT_PART")"
 if [ -z "$ROOT_PARTUUID" ]; then
@@ -199,32 +151,41 @@ if [ -z "$ROOT_PARTUUID" ]; then
   exit 1
 fi
 
-echo "==> Installing GRUB for removable UEFI boot"
+STUB=""
+for candidate in \
+  /usr/lib/systemd/boot/efi/linuxx64.efi.stub \
+  /lib/systemd/boot/efi/linuxx64.efi.stub
+do
+  if [ -f "$candidate" ]; then
+    STUB="$candidate"
+    break
+  fi
+done
+
+if [ -z "$STUB" ]; then
+  echo "Missing Linux EFI stub."
+  echo "Install package providing linuxx64.efi.stub."
+  exit 1
+fi
+
 mkdir -p "$EFI_MNT/EFI/BOOT"
-mkdir -p "$ROOT_MNT/boot/grub"
+mkdir -p "$WORK/uki"
 
-grub-install \
-  --target=x86_64-efi \
-  --efi-directory="$EFI_MNT" \
-  --boot-directory="$ROOT_MNT/boot" \
-  --removable \
-  --no-nvram \
-  --recheck
-
-cat > "$ROOT_MNT/boot/grub/grub.cfg" <<EOF
-set timeout=0
-set default=0
-
-menuentry "BOS Buildroot Appliance" {
-    linux /boot/bzImage root=PARTUUID=${ROOT_PARTUUID} rootwait rw console=tty1 loglevel=3 quiet
-}
+cat > "$WORK/uki/cmdline" <<EOF
+root=PARTUUID=${ROOT_PARTUUID} rootwait rw quiet loglevel=0 vt.global_cursor_default=0 console=tty1
 EOF
 
-cat > "$EFI_MNT/EFI/BOOT/grub.cfg" <<EOF
-set root=(hd0,gpt2)
-linux /boot/bzImage root=/dev/sda2 rootwait rw console=tty1 loglevel=3
-boot
+cat > "$WORK/uki/os-release" <<'EOF'
+ID=bos
+NAME="BOS Appliance"
+PRETTY_NAME="BOS Appliance"
 EOF
+
+objcopy \
+  --add-section .osrel="$WORK/uki/os-release" --change-section-vma .osrel=0x20000 \
+  --add-section .cmdline="$WORK/uki/cmdline" --change-section-vma .cmdline=0x30000 \
+  --add-section .linux="$KERNEL" --change-section-vma .linux=0x2000000 \
+  "$STUB" "$EFI_MNT/EFI/BOOT/BOOTX64.EFI"
 
 echo "==> Final sync"
 sync
