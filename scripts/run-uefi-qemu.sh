@@ -38,7 +38,10 @@ qemu-system-x86_64 \
   -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" \
   -drive id=bosdisk,if=none,format=raw,file="$IMAGE" \
   -device qemu-xhci,id=xhci \
+  -device usb-host,vendorid=0x2c97,productid=0x4000 \
   -device usb-storage,drive=bosdisk,bootindex=1 \
+  -netdev user,id=net0 \
+  -device e1000,netdev=net0 \
   -display gtk \
   -serial stdio \
   -no-reboot

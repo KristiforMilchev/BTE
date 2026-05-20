@@ -1,0 +1,24 @@
+# Buildroot output/cache
+external/buildroot/output/
+external/buildroot/dl/
+external/buildroot/.config
+external/buildroot/.config.old
+external/buildroot/defconfig
+
+# Local binaries
+bos
+bos-debug
+ledger-test
+ledger-test-debug
+*.img
+*.iso
+*.qcow2
+
+# Go local artifacts
+src/bos/bos
+src/bos/*.test
+src/bos/coverage.out
+
+# Editor/OS noise
+.DS_Store
+*.swp

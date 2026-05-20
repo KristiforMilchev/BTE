@@ -121,6 +121,41 @@ echo "==> Creating runtime directories"
 mkdir -p "$ROOT_MNT"/{dev,proc,sys,tmp,run,var/log,boot/efi}
 chmod 1777 "$ROOT_MNT/tmp"
 
+
+echo "==> Installing DHCP resolver script"
+mkdir -p "$ROOT_MNT/usr/share/udhcpc"
+
+cat > "$ROOT_MNT/usr/share/udhcpc/default.script" <<'EOF'
+#!/bin/sh
+
+case "$1" in
+  deconfig)
+    ifconfig "$interface" 0.0.0.0
+    ;;
+
+  bound|renew)
+    ifconfig "$interface" "$ip" netmask "$subnet"
+
+    if [ -n "$router" ]; then
+      route del default 2>/dev/null || true
+      for r in $router; do
+        route add default gw "$r" dev "$interface"
+        break
+      done
+    fi
+
+    : > /etc/resolv.conf
+    for dns in $dns; do
+      echo "nameserver $dns" >> /etc/resolv.conf
+    done
+    ;;
+esac
+
+exit 0
+EOF
+
+chmod +x "$ROOT_MNT/usr/share/udhcpc/default.script"
+
 echo "==> Configuring BusyBox init to launch BOS directly"
 cat > "$ROOT_MNT/etc/inittab" <<'EOF'
 # BOS appliance BusyBox init
@@ -134,6 +169,9 @@ cat > "$ROOT_MNT/etc/inittab" <<'EOF'
 ::sysinit:/bin/mount -t tmpfs tmpfs /var/log
 ::sysinit:/bin/hostname -F /etc/hostname
 ::sysinit:/sbin/mdev -s
+::sysinit:/sbin/ifconfig lo up
+::sysinit:/sbin/ifconfig eth0 up
+::sysinit:/sbin/udhcpc -i eth0 -s /usr/share/udhcpc/default.script
 ::sysinit:/etc/init.d/rcS
 
 # BOS owns the console. No login shell.
