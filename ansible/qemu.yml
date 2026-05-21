@@ -1,0 +1,49 @@
+---
+- name: Build and run BOS in QEMU
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ playbook_dir }}/.."
+    src_dir: "{{ project_dir }}/src"
+
+  tasks:
+    - name: Build static BOS binary
+      ansible.builtin.shell: |
+        CC=musl-gcc \
+        CGO_ENABLED=1 \
+        GOOS=linux \
+        GOARCH=amd64 \
+        go build \
+          -trimpath \
+          -ldflags="-linkmode external -extldflags '-static' -s -w" \
+          -o bos .
+      args:
+        chdir: "{{ src_dir }}"
+
+    - name: Remove previous image output
+      become: true
+      ansible.builtin.file:
+        path: "{{ project_dir }}/out"
+        state: absent
+
+    - name: Build BOS UEFI image
+      become: true
+      ansible.builtin.command:
+        cmd: bash ./scripts/make-uefi-usb-image.sh
+        chdir: "{{ project_dir }}"
+
+    - name: Restore ownership of output
+      become: true
+      ansible.builtin.file:
+        path: "{{ project_dir }}/out"
+        owner: "{{ lookup('env', 'USER') }}"
+        group: "{{ lookup('env', 'USER') }}"
+        recurse: true
+
+    - name: Run BOS in QEMU
+      become: true
+      ansible.builtin.command:
+        cmd: bash ./scripts/run-uefi-qemu.sh
+        chdir: "{{ project_dir }}"

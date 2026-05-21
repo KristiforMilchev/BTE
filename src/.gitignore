@@ -1,5 +1,0 @@
-src/bos
-src/vendor/
-external/buildroot/output/
-external/buildroot/dl/
-external/buildroot/.config

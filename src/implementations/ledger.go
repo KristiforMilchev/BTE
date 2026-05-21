@@ -1,11 +1,11 @@
 package implementations
 
 import (
-	"errors"
-	"fmt"
 	"bos/constants"
 	"bos/interfaces"
 	"bos/utils"
+	"errors"
+	"fmt"
 	"log"
 
 	"github.com/ethereum/go-ethereum"

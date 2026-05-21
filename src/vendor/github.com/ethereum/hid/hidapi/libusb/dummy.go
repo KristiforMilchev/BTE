@@ -1,6 +1,5 @@
 //go:build dummy
 
-//
 // Package c contains only a C file.
 //
 // This Go file is part of a workaround for `go mod vendor`.

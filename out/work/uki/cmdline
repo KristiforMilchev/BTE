@@ -1,0 +1,1 @@
+root=PARTUUID=1eb85ed8-84a0-4ada-a76d-74a64ec5818d rootwait rw quiet loglevel=0 vt.global_cursor_default=0 console=tty1
