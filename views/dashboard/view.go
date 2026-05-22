@@ -178,13 +178,6 @@ func (m *Model) renderTokenList(width int) string {
 	return strings.Join(rows, "\n\n")
 }
 
-func (m *Model) walletBalance() string {
-	if len(m.tokens) == 0 {
-		return "0 ETH"
-	}
-	return m.tokens[0].Balance + " " + m.tokens[0].Symbol
-}
-
 func riskLabel(risk string) string {
 	switch strings.ToLower(risk) {
 	case "low":
@@ -203,11 +196,4 @@ func safeWidth(width int) int {
 		return 100
 	}
 	return width
-}
-
-func max(a int, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
