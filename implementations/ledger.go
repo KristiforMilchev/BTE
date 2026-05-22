@@ -3,6 +3,7 @@ package implementations
 import (
 	"bos/constants"
 	"bos/interfaces"
+	"bos/repositories"
 	"bos/utils"
 	"context"
 	"errors"
@@ -19,17 +20,24 @@ import (
 
 type Ledger struct {
 	networkProvider interfaces.INetwork
-	tokens []interfaces.IERC20
+	tokens          []interfaces.IERC20
+	accounts        repositories.AccountsRepository
 }
 
-func (l *Ledger) Account() (*accounts.Account, error) {
+func (l *Ledger) Account() (*common.Address, error) {
+	address, err := l.accounts.Account()
+	if err != nil {
+		log.Printf("account doesn't exist -> %s", err)
+	}
+
 	wallet, account, err := openLedger(false)
 	if err != nil {
 		log.Printf("Failed to connect to ledger -> %s", err)
 		return nil, err
 	}
 	defer wallet.Close()
-	return &account, nil
+	address = &account.Address
+	return address, nil
 }
 
 func (l *Ledger) Open() (*accounts.Wallet, *accounts.Account, error) {
@@ -148,7 +156,7 @@ func (l *Ledger) Address() (common.Address, error) {
 		return common.Address{}, err
 	}
 
-	return account.Address, nil
+	return *account, nil
 }
 
 func (l *Ledger) SignTransaction(
@@ -165,11 +173,10 @@ func (l *Ledger) SignTransaction(
 	return (*wallet).SignTx(*account, tx, chainID)
 }
 
-
-
-func NewLedger(networkProvider interfaces.INetwork) *Ledger {
+func NewLedger(networkProvider interfaces.INetwork, account repositories.AccountsRepository) *Ledger {
 
 	return &Ledger{
 		networkProvider: networkProvider,
+		accounts:        account,
 	}
 }

@@ -18,8 +18,9 @@ var register repositories.RepositoryRegister
 
 func SetupDependencies() {
 	setupDatabase()
+	register = repositories.NewRegister(storage)
 	network = implementations.NewNetworkProvider()
-	wallet = implementations.NewLedger(network)
+	wallet = implementations.NewLedger(network, register.Accounts)
 	swapRouter := implementations.NewContractClient(network, nil)
 	router := common.HexToAddress("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D")
 	swap, err := implementations.NewUniswapV2Router(swapRouter, router)
@@ -37,7 +38,6 @@ func SetupDependencies() {
 	}
 
 	logger = loggerInstance
-	register = repositories.NewRegister(storage)
 }
 
 func setupDatabase() {

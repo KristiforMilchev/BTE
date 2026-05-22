@@ -14,7 +14,7 @@ func main() {
 	defer di.GetLogger().Close()
 
 	program := tea.NewProgram(
-		app.New(di.GetWallet(), di.GetNetwork()),
+		app.New(di.GetWallet(), di.GetNetwork(), di.Repositories()),
 		tea.WithAltScreen(),
 	)
 
