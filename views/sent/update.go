@@ -1,7 +1,9 @@
 package sent
 
 import (
-	"bos/views"
+	"bos/enums"
+	"bos/types"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -17,7 +19,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "enter", "esc":
-			return m, func() tea.Msg { return views.NavigateMsg{Screen: views.ScreenDashboard} }
+			return m, func() tea.Msg { return types.NavigateMsg{Screen: enums.ScreenDashboard} }
 		}
 	}
 	return m, nil

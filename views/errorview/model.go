@@ -1,11 +1,13 @@
 package errorview
 
-import "bos/views"
+import (
+	"bos/types"
+)
 
 type Model struct {
-	payload views.ErrorPayload
+	payload types.ErrorPayload
 	width   int
 	height  int
 }
 
-func New(payload views.ErrorPayload) *Model { return &Model{payload: payload} }
+func New(payload types.ErrorPayload) *Model { return &Model{payload: payload} }

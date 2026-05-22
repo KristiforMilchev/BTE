@@ -2,8 +2,8 @@ package dashboard
 
 import (
 	"bos/enums"
+	"bos/types"
 	"bos/utils"
-	"bos/views"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -27,7 +27,7 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "q", "ctrl+c":
 		return m, tea.Quit
 	case "r":
-		return m, func() tea.Msg { return views.NavigateMsg{Screen: views.ScreenLoading} }
+		return m, func() tea.Msg { return types.NavigateMsg{Screen: enums.ScreenLoading} }
 	case "s":
 		m.runFakeSimulation()
 		return m, nil
@@ -187,17 +187,17 @@ func (m *Model) beginSend() (tea.Model, tea.Cmd) {
 		m.syncFocus()
 		return m, nil
 	}
-	draft := views.TxDraft{
+	draft := types.TxDraft{
 		FromAddress: m.address, RecipientName: m.selectedRecipient().Name, RecipientAddress: m.selectedRecipient().Address,
 		Amount: amount, Asset: m.selectedAsset(), EstimatedFee: m.estimatedFee,
 		SimulationStatus: m.simulationStatus, RiskLevel: m.riskLevel,
 	}
-	return m, func() tea.Msg { return views.NavigateMsg{Screen: views.ScreenConfirm, Payload: draft} }
+	return m, func() tea.Msg { return types.NavigateMsg{Screen: enums.ScreenConfirm, Payload: draft} }
 }
 
-func (m Model) selectedAsset() views.Token {
+func (m Model) selectedAsset() types.Token {
 	if len(m.tokens) == 0 {
-		return views.Token{Symbol: "ETH", Balance: "0", Native: true}
+		return types.Token{Symbol: "ETH", Balance: "0", Native: true}
 	}
 	if m.selectedToken < 0 || m.selectedToken >= len(m.tokens) {
 		return m.tokens[0]
@@ -205,9 +205,9 @@ func (m Model) selectedAsset() views.Token {
 	return m.tokens[m.selectedToken]
 }
 
-func (m Model) selectedRecipient() views.Contact {
+func (m Model) selectedRecipient() types.Contact {
 	if len(m.contacts) == 0 {
-		return views.Contact{Name: "No Contact", Address: ""}
+		return types.Contact{Name: "No Contact", Address: ""}
 	}
 	if m.selectedContact < 0 || m.selectedContact >= len(m.contacts) {
 		return m.contacts[0]

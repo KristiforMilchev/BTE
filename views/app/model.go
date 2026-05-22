@@ -1,9 +1,11 @@
 package app
 
 import (
+	"bos/enums"
 	"bos/interfaces"
 	"bos/repositories"
-	"bos/views"
+	"bos/types"
+	"bos/utils"
 	"bos/views/confirm"
 	"bos/views/dashboard"
 	"bos/views/errorview"
@@ -46,12 +48,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-	case views.WalletLoadedMsg:
+	case types.WalletLoadedMsg:
 		if msg.Err != nil {
-			m.current = errorview.New(views.ErrorPayload{
+			m.current = errorview.New(types.ErrorPayload{
 				Title:   "Blockcert",
-				Message: views.ErrorMessage(msg.Err),
-				Return:  views.ScreenLoading,
+				Message: utils.ErrorMessage(msg.Err),
+				Return:  enums.ScreenLoading,
 			})
 			return m, nil
 		}
@@ -65,20 +67,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.current = m.dashboard
 		return m, resizeCmd(m.width, m.height)
 
-	case views.NavigateMsg:
+	case types.NavigateMsg:
 		return m, m.navigate(msg)
 
-	case views.SendFinishedMsg:
+	case types.SendFinishedMsg:
 		if msg.Err != nil {
-			m.current = errorview.New(views.ErrorPayload{
+			m.current = errorview.New(types.ErrorPayload{
 				Title:   "Transaction Failed",
-				Message: views.ErrorMessage(msg.Err),
-				Return:  views.ScreenDashboard,
+				Message: utils.ErrorMessage(msg.Err),
+				Return:  enums.ScreenDashboard,
 			})
 			return m, resizeCmd(m.width, m.height)
 		}
 
-		m.current = sent.New(views.SentPayload{TxHash: msg.TxHash})
+		m.current = sent.New(types.SentPayload{TxHash: msg.TxHash})
 		return m, resizeCmd(m.width, m.height)
 	}
 
@@ -94,13 +96,13 @@ func (m *Model) View() string {
 	return m.current.View()
 }
 
-func (m *Model) navigate(msg views.NavigateMsg) tea.Cmd {
+func (m *Model) navigate(msg types.NavigateMsg) tea.Cmd {
 	switch msg.Screen {
-	case views.ScreenLoading:
+	case enums.ScreenLoading:
 		m.current = loading.New(m.wallet, m.network, m.register.Accounts)
 		return tea.Batch(resizeCmd(m.width, m.height), m.current.Init())
 
-	case views.ScreenDashboard:
+	case enums.ScreenDashboard:
 		if m.dashboard != nil {
 			m.current = m.dashboard
 			return resizeCmd(m.width, m.height)
@@ -108,28 +110,28 @@ func (m *Model) navigate(msg views.NavigateMsg) tea.Cmd {
 		m.current = loading.New(m.wallet, m.network, m.register.Accounts)
 		return tea.Batch(resizeCmd(m.width, m.height), m.current.Init())
 
-	case views.ScreenConfirm:
-		draft, ok := msg.Payload.(views.TxDraft)
+	case enums.ScreenConfirm:
+		draft, ok := msg.Payload.(types.TxDraft)
 		if !ok {
-			m.current = errorview.New(views.ErrorPayload{Title: "Invalid View Payload", Message: "missing transaction draft", Return: views.ScreenDashboard})
+			m.current = errorview.New(types.ErrorPayload{Title: "Invalid View Payload", Message: "missing transaction draft", Return: enums.ScreenDashboard})
 			return resizeCmd(m.width, m.height)
 		}
 		m.current = confirm.New(m.wallet, draft)
 		return resizeCmd(m.width, m.height)
 
-	case views.ScreenSending:
+	case enums.ScreenSending:
 		m.current = sending.New()
 		return resizeCmd(m.width, m.height)
 
-	case views.ScreenSent:
-		payload, _ := msg.Payload.(views.SentPayload)
+	case enums.ScreenSent:
+		payload, _ := msg.Payload.(types.SentPayload)
 		m.current = sent.New(payload)
 		return resizeCmd(m.width, m.height)
 
-	case views.ScreenError:
-		payload, ok := msg.Payload.(views.ErrorPayload)
+	case enums.ScreenError:
+		payload, ok := msg.Payload.(types.ErrorPayload)
 		if !ok {
-			payload = views.ErrorPayload{Title: "Blockcert", Message: "unknown error", Return: views.ScreenDashboard}
+			payload = types.ErrorPayload{Title: "Blockcert", Message: "unknown error", Return: enums.ScreenDashboard}
 		}
 		m.current = errorview.New(payload)
 		return resizeCmd(m.width, m.height)

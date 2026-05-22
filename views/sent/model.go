@@ -1,11 +1,11 @@
 package sent
 
-import "bos/views"
+import "bos/types"
 
 type Model struct {
-	payload views.SentPayload
+	payload types.SentPayload
 	width   int
 	height  int
 }
 
-func New(payload views.SentPayload) *Model { return &Model{payload: payload} }
+func New(payload types.SentPayload) *Model { return &Model{payload: payload} }

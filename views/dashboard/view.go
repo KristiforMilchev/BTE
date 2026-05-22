@@ -6,6 +6,7 @@ import (
 	"bos/components"
 	"bos/constants"
 	"bos/enums"
+	"bos/types"
 	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
@@ -79,7 +80,7 @@ func renderAmountHero(amount string, symbol string, active bool, width int) stri
 	return "\n" + amountLine + "\n\n" + symbolLine + "\n"
 }
 
-func renderRecipientBlock(recipient views.Contact, width int) string {
+func renderRecipientBlock(recipient types.Contact, width int) string {
 	return strings.Join([]string{
 		components.SectionTitle.Render("Recipient"),
 		components.Value.Render(components.Truncate(recipient.Name, width)),

@@ -3,7 +3,7 @@ package dashboard
 import (
 	"bos/enums"
 	"bos/interfaces"
-	"bos/views"
+	"bos/types"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -33,8 +33,8 @@ type Model struct {
 	selectedToken   int
 	selectedContact int
 
-	tokens   []views.Token
-	contacts []views.Contact
+	tokens   []types.Token
+	contacts []types.Contact
 
 	simulationStatus string
 	riskLevel        string
