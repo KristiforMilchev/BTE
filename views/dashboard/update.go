@@ -1,38 +1,13 @@
-package main
+package dashboard
 
 import (
 	"bos/utils"
 	"bos/views"
-	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/ethereum/go-ethereum/common"
 )
-
-func (m *Model) Init() tea.Cmd {
-	return m.loadWallet()
-}
-
-func (m *Model) loadWallet() tea.Cmd {
-	return func() tea.Msg {
-		wallet, err := m.wallet.Account()
-		if err != nil {
-			return walletLoadedMsg{Err: err}
-		}
-
-		networkBalance, err := m.network.Balance(wallet.Address)
-		if err != nil {
-			return walletLoadedMsg{Err: err}
-		}
-
-		return walletLoadedMsg{
-			Address: wallet.Address.Hex(),
-			Balance: networkBalance.Balance,
-			ChainID: networkBalance.ChainID.String(),
-		}
-	}
-}
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -40,38 +15,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		return m, nil
-
-	case walletLoadedMsg:
-		if msg.Err != nil {
-			m.screen = views.ScreenError
-			m.err = msg.Err.Error()
-			return m, nil
-		}
-
-		m.address = msg.Address
-		m.balance = msg.Balance
-		m.chainID = msg.ChainID
-		m.tokens[0].Balance = msg.Balance
-		m.screen = views.ScreenDashboard
-		m.statusMessage = "Wallet loaded"
-		return m, nil
-
-	case sendFinishedMsg:
-		if msg.Err != nil {
-			m.screen = views.ScreenError
-			m.err = msg.Err.Error()
-			return m, nil
-		}
-
-		m.txHash = msg.TxHash
-		m.screen = views.ScreenSent
-		m.statusMessage = "Transaction broadcast"
-		return m, nil
-
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
-
 	return m, nil
 }
 
@@ -80,45 +26,7 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "q", "ctrl+c":
 		return m, tea.Quit
 	case "r":
-		m.screen = views.ScreenLoading
-		m.err = ""
-		m.txHash = ""
-		m.statusMessage = "Refreshing wallet"
-		return m, m.loadWallet()
-	}
-
-	switch m.screen {
-	case views.ScreenDashboard:
-		return m.handleDashboardKey(msg)
-	case views.ScreenConfirm:
-		return m.handleConfirmKey(msg)
-	case views.ScreenSent:
-		if msg.String() == "enter" || msg.String() == "esc" {
-			m.screen = views.ScreenDashboard
-			m.txHash = ""
-			return m, nil
-		}
-	case views.ScreenError:
-		if msg.String() == "enter" {
-			m.screen = views.ScreenLoading
-			m.err = ""
-			return m, m.loadWallet()
-		}
-		if msg.String() == "esc" {
-			m.screen = views.ScreenDashboard
-			m.err = ""
-			return m, nil
-		}
-	}
-
-	return m, nil
-}
-
-func (m *Model) handleDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	key := msg.String()
-
-	// Direct action keys. Keep sending/simulation out of the navigation model.
-	switch key {
+		return m, func() tea.Msg { return views.NavigateMsg{Screen: views.ScreenLoading} }
 	case "s":
 		m.runFakeSimulation()
 		return m, nil
@@ -136,8 +44,7 @@ func (m *Model) handleDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Spatial navigation.
-	switch key {
+	switch msg.String() {
 	case "left", "h":
 		m.focus = views.FocusAmount
 		m.syncFocus()
@@ -210,33 +117,14 @@ func (m *Model) activateFocusedItem() (tea.Model, tea.Cmd) {
 		m.focus = views.FocusAmount
 		m.syncFocus()
 		m.statusMessage = "Recipient selected: " + m.selectedRecipient().Name
-		return m, nil
 	case views.FocusTokens:
 		m.focus = views.FocusAmount
 		m.syncFocus()
 		m.statusMessage = "Asset selected: " + m.selectedAsset().Symbol
 		m.resetAnalysis()
-		return m, nil
 	case views.FocusAmount:
 		m.statusMessage = "Amount set: " + strings.TrimSpace(m.amountInput.Value())
-		return m, nil
-	default:
-		return m, nil
 	}
-}
-
-func (m *Model) handleConfirmKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "y", "enter", " ":
-		m.screen = views.ScreenSending
-		m.statusMessage = "Waiting for Ledger approval"
-		return m, m.sendTransaction()
-	case "n", "esc":
-		m.screen = views.ScreenDashboard
-		m.statusMessage = "Transaction cancelled"
-		return m, nil
-	}
-
 	return m, nil
 }
 
@@ -268,7 +156,6 @@ func (m *Model) runFakeSimulation() {
 		m.syncFocus()
 		return
 	}
-
 	m.simulationStatus = "Completed"
 	m.riskLevel = "Low"
 	m.estimatedFee = "0.000021 ETH"
@@ -283,44 +170,28 @@ func (m *Model) beginSend() (tea.Model, tea.Cmd) {
 		m.syncFocus()
 		return m, nil
 	}
-
 	if _, err := utils.ParseEtherToWei(amount); err != nil {
 		m.statusMessage = "Invalid amount: " + err.Error()
 		m.focus = views.FocusAmount
 		m.syncFocus()
 		return m, nil
 	}
-
 	if !m.selectedAsset().Native {
 		m.statusMessage = "Token transfer signing is not integrated yet"
 		return m, nil
 	}
-
 	if !common.IsHexAddress(m.selectedRecipient().Address) {
 		m.statusMessage = "Selected contact has an invalid address"
 		m.focus = views.FocusContacts
 		m.syncFocus()
 		return m, nil
 	}
-
-	m.screen = views.ScreenConfirm
-	return m, nil
-}
-
-func (m *Model) sendTransaction() tea.Cmd {
-	recipient := m.selectedRecipient().Address
-	amount := strings.TrimSpace(m.amountInput.Value())
-
-	return func() tea.Msg {
-		txHash, err := m.wallet.SendTransaction(recipient, &amount, nil)
-		if err != nil {
-			return sendFinishedMsg{Err: err}
-		}
-		if txHash == nil {
-			return sendFinishedMsg{Err: fmt.Errorf("wallet returned an empty transaction hash")}
-		}
-		return sendFinishedMsg{TxHash: *txHash}
+	draft := views.TxDraft{
+		FromAddress: m.address, RecipientName: m.selectedRecipient().Name, RecipientAddress: m.selectedRecipient().Address,
+		Amount: amount, Asset: m.selectedAsset(), EstimatedFee: m.estimatedFee,
+		SimulationStatus: m.simulationStatus, RiskLevel: m.riskLevel,
 	}
+	return m, func() tea.Msg { return views.NavigateMsg{Screen: views.ScreenConfirm, Payload: draft} }
 }
 
 func (m Model) selectedAsset() views.Token {

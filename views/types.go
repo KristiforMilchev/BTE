@@ -34,32 +34,3 @@ type Token struct {
 	Native   bool
 	Verified bool
 }
-
-type State struct {
-	Screen Screen
-	Focus  FocusArea
-
-	Width  int
-	Height int
-
-	Address string
-	Balance string
-	ChainID string
-	Err     string
-	TxHash  string
-
-	AmountInput string
-	AmountValue string
-
-	SelectedToken   int
-	SelectedContact int
-
-	Tokens   []Token
-	Contacts []Contact
-
-	SimulationStatus string
-	RiskLevel        string
-	EstimatedFee     string
-	StatusMessage    string
-	RpcURL           string
-}

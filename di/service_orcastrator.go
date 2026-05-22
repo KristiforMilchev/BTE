@@ -3,6 +3,7 @@ package di
 import (
 	"bos/implementations"
 	"bos/interfaces"
+	"bos/repositories"
 	"log"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -12,6 +13,8 @@ var wallet interfaces.IWallet
 var network interfaces.INetwork
 var logger interfaces.ILogger
 var swaps []interfaces.ISwapRouter
+var storage interfaces.IStorage
+var register repositories.RepositoryRegister
 
 func SetupDependencies() {
 	setupDatabase()
@@ -34,11 +37,12 @@ func SetupDependencies() {
 	}
 
 	logger = loggerInstance
+	register = repositories.NewRegister(storage)
 }
 
 func setupDatabase() {
 	log.Println("Initializing database")
-	storage := implementations.NewStorage(
+	storage = implementations.NewStorage(
 		"./data/bos.db",
 		"./sql/schema.sql",
 	)
@@ -61,4 +65,8 @@ func GetLogger() interfaces.ILogger {
 
 func GetSwaps() []interfaces.ISwapRouter {
 	return swaps
+}
+
+func Repositories() repositories.RepositoryRegister {
+	return register
 }

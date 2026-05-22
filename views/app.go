@@ -8,66 +8,54 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func Render(s State) string {
-	s.Width = safeWidth(s.Width)
-	if s.Height <= 0 {
-		s.Height = 30
+func RenderApp(width int, height int, focus FocusArea, statusMessage string, rpcURL string, content string) string {
+	width = safeWidth(width)
+	if height <= 0 {
+		height = 30
 	}
 
-	switch s.Screen {
-	case ScreenLoading:
-		return RenderCentered(s, "Connecting to Ledger", "Requirements:\n- Ledger plugged in\n- Device unlocked\n- Ethereum app open\n- Ledger Live closed\n\nPress q to quit.")
-	case ScreenDashboard:
-		return renderApp(s, RenderDashboard(s))
-	case ScreenConfirm:
-		return renderApp(s, RenderConfirm(s))
-	case ScreenSending:
-		return renderApp(s, RenderSending(s))
-	case ScreenSent:
-		return renderApp(s, RenderSent(s))
-	case ScreenError:
-		return RenderCentered(s, "Blockcert", components.ErrorText.Render("Error:")+"\n"+s.Err+"\n\nPress enter to retry. Press esc to return. Press q to quit.")
-	default:
-		return ""
-	}
-}
-
-func renderApp(s State, content string) string {
 	return components.App.Render(
 		lipgloss.JoinVertical(
 			lipgloss.Left,
-			RenderHeader(s),
+			RenderHeader(width, focus),
 			content,
-			RenderFooter(s),
+			RenderFooter(width, statusMessage, rpcURL),
 		),
 	)
 }
 
-func RenderCentered(s State, title string, body string) string {
+func RenderCentered(width int, height int, title string, body string) string {
+	width = safeWidth(width)
+	if height <= 0 {
+		height = 30
+	}
+
 	content := components.SectionTitle.Render(title) + "\n\n" + body
 	box := components.Panel(64, content)
 
 	return lipgloss.Place(
-		s.Width,
-		s.Height,
+		width,
+		height,
 		lipgloss.Center,
 		lipgloss.Center,
 		box,
 	)
 }
 
-func RenderHeader(s State) string {
-	left := components.Value.Render("Blockcert")
-	right := components.MutedText.Render(activeHelp(s))
+func RenderHeader(width int, focus FocusArea) string {
+	width = safeWidth(width)
 
-	spacerWidth := components.Max(1, s.Width-lipgloss.Width(left)-lipgloss.Width(right)-2)
+	left := components.Value.Render("Blockcert")
+	right := components.MutedText.Render(activeHelp(focus))
+
+	spacerWidth := components.Max(1, width-lipgloss.Width(left)-lipgloss.Width(right)-2)
 	line := left + lipgloss.NewStyle().Width(spacerWidth).Render("") + right
 
-	return line + "\n" + components.Separator(s.Width)
+	return line + "\n" + components.Separator(width)
 }
 
-func activeHelp(s State) string {
-	switch s.Focus {
+func activeHelp(focus FocusArea) string {
+	switch focus {
 	case FocusAmount:
 		return "Amount • type value • h/l assets • p recipients • s simulate • S send"
 	case FocusTokens:
@@ -79,16 +67,18 @@ func activeHelp(s State) string {
 	}
 }
 
-func RenderFooter(s State) string {
+func RenderFooter(width int, statusMessage string, rpcURL string) string {
+	width = safeWidth(width)
+
 	status := "Ledger Connected • RPC Online"
-	if s.RpcURL != "" {
-		status += " • " + s.RpcURL
+	if rpcURL != "" {
+		status += " • " + rpcURL
 	}
-	if strings.TrimSpace(s.StatusMessage) != "" {
-		status += " • " + s.StatusMessage
+	if strings.TrimSpace(statusMessage) != "" {
+		status += " • " + statusMessage
 	}
 
-	return components.Separator(s.Width) + "\n" + components.MutedText.Render(components.Truncate(status, s.Width))
+	return components.Separator(width) + "\n" + components.MutedText.Render(components.Truncate(status, width))
 }
 
 func safeWidth(width int) int {

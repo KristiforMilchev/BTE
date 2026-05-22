@@ -2,7 +2,8 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS accounts (
 	id TEXT PRIMARY KEY,
-	address TEXT NOT NULL UNIQUE
+	address TEXT NOT NULL UNIQUE,
+	last_used INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS networks (
