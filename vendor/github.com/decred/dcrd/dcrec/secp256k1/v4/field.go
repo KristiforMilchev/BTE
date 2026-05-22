@@ -635,7 +635,6 @@ func (f *FieldVal) Equals(val *FieldVal) bool {
 //
 // Preconditions:
 //   - The max magnitude MUST be 63
-//
 // Output Normalized: No
 // Output Max Magnitude: Input magnitude + 1
 func (f *FieldVal) NegateVal(val *FieldVal, magnitude uint32) *FieldVal {
@@ -680,7 +679,6 @@ func (f *FieldVal) NegateVal(val *FieldVal, magnitude uint32) *FieldVal {
 //
 // Preconditions:
 //   - The max magnitude MUST be 63
-//
 // Output Normalized: No
 // Output Max Magnitude: Input magnitude + 1
 func (f *FieldVal) Negate(magnitude uint32) *FieldVal {
@@ -696,7 +694,6 @@ func (f *FieldVal) Negate(magnitude uint32) *FieldVal {
 //
 // Preconditions:
 //   - The field value MUST have a max magnitude of 63
-//
 // Output Normalized: No
 // Output Max Magnitude: Existing field magnitude + 1
 func (f *FieldVal) AddInt(ui uint16) *FieldVal {
@@ -716,7 +713,6 @@ func (f *FieldVal) AddInt(ui uint16) *FieldVal {
 //
 // Preconditions:
 //   - The sum of the magnitudes of the two field values MUST be a max of 64
-//
 // Output Normalized: No
 // Output Max Magnitude: Sum of the magnitude of the two individual field values
 func (f *FieldVal) Add(val *FieldVal) *FieldVal {
@@ -746,7 +742,6 @@ func (f *FieldVal) Add(val *FieldVal) *FieldVal {
 //
 // Preconditions:
 //   - The sum of the magnitudes of the two field values MUST be a max of 64
-//
 // Output Normalized: No
 // Output Max Magnitude: Sum of the magnitude of the two field values
 func (f *FieldVal) Add2(val *FieldVal, val2 *FieldVal) *FieldVal {
@@ -779,7 +774,6 @@ func (f *FieldVal) Add2(val *FieldVal, val2 *FieldVal) *FieldVal {
 //
 // Preconditions:
 //   - The field value magnitude multiplied by given val MUST be a max of 64
-//
 // Output Normalized: No
 // Output Max Magnitude: Existing field magnitude times the provided integer val
 func (f *FieldVal) MulInt(val uint8) *FieldVal {
@@ -815,7 +809,6 @@ func (f *FieldVal) MulInt(val uint8) *FieldVal {
 //
 // Preconditions:
 //   - Both field values MUST have a max magnitude of 8
-//
 // Output Normalized: No
 // Output Max Magnitude: 1
 func (f *FieldVal) Mul(val *FieldVal) *FieldVal {
@@ -833,7 +826,6 @@ func (f *FieldVal) Mul(val *FieldVal) *FieldVal {
 //
 // Preconditions:
 //   - Both input field values MUST have a max magnitude of 8
-//
 // Output Normalized: No
 // Output Max Magnitude: 1
 func (f *FieldVal) Mul2(val *FieldVal, val2 *FieldVal) *FieldVal {
@@ -1111,7 +1103,6 @@ func (f *FieldVal) Mul2(val *FieldVal, val2 *FieldVal) *FieldVal {
 //
 // Preconditions:
 //   - The input field value MUST have a max magnitude of 8
-//
 // Output Normalized: No
 // Output Max Magnitude: 1
 func (f *FieldVal) SquareRootVal(val *FieldVal) bool {
@@ -1273,7 +1264,6 @@ func (f *FieldVal) SquareRootVal(val *FieldVal) bool {
 //
 // Preconditions:
 //   - The field value MUST have a max magnitude of 8
-//
 // Output Normalized: No
 // Output Max Magnitude: 1
 func (f *FieldVal) Square() *FieldVal {
@@ -1290,7 +1280,6 @@ func (f *FieldVal) Square() *FieldVal {
 //
 // Preconditions:
 //   - The input field value MUST have a max magnitude of 8
-//
 // Output Normalized: No
 // Output Max Magnitude: 1
 func (f *FieldVal) SquareVal(val *FieldVal) *FieldVal {
@@ -1516,7 +1505,6 @@ func (f *FieldVal) SquareVal(val *FieldVal) *FieldVal {
 //
 // Preconditions:
 //   - The field value MUST have a max magnitude of 8
-//
 // Output Normalized: No
 // Output Max Magnitude: 1
 func (f *FieldVal) Inverse() *FieldVal {

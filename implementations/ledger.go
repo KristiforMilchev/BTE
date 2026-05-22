@@ -4,9 +4,11 @@ import (
 	"bos/constants"
 	"bos/interfaces"
 	"bos/utils"
+	"context"
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
@@ -137,6 +139,29 @@ func openLedger(pin bool) (accounts.Wallet, accounts.Account, error) {
 	}
 
 	return wallet, account, nil
+}
+
+func (l *Ledger) Address() (common.Address, error) {
+	account, err := l.Account()
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return account.Address, nil
+}
+
+func (l *Ledger) SignTransaction(
+	ctx context.Context,
+	tx *types.Transaction,
+	chainID *big.Int,
+) (*types.Transaction, error) {
+	wallet, account, err := l.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer (*wallet).Close()
+
+	return (*wallet).SignTx(*account, tx, chainID)
 }
 
 func NewLedger(networkProvider interfaces.INetwork) *Ledger {

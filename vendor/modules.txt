@@ -98,6 +98,7 @@ github.com/ethereum/c-kzg-4844/v2/bindings/go
 ## explicit; go 1.24.0
 github.com/ethereum/go-ethereum
 github.com/ethereum/go-ethereum/accounts
+github.com/ethereum/go-ethereum/accounts/abi
 github.com/ethereum/go-ethereum/accounts/usbwallet
 github.com/ethereum/go-ethereum/accounts/usbwallet/trezor
 github.com/ethereum/go-ethereum/common
