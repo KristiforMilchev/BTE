@@ -5,6 +5,7 @@ import (
 
 	"bos/components"
 	"bos/constants"
+	"bos/enums"
 	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
@@ -51,7 +52,7 @@ func (m *Model) renderTransferPanel(width int, height int) string {
 	}
 
 	body := strings.Join([]string{
-		renderAmountHero(amountDisplay, asset.Symbol, m.focus == views.FocusAmount, innerWidth),
+		renderAmountHero(amountDisplay, asset.Symbol, m.focus == enums.FocusAmount, innerWidth),
 		"",
 		renderRecipientBlock(recipient, innerWidth),
 		"",
@@ -103,7 +104,7 @@ func (m *Model) renderContacts(width int) string {
 
 	rows := make([]string, 0, len(m.contacts))
 	for i, contact := range m.contacts {
-		active := m.focus == views.FocusContacts && i == m.selectedContact
+		active := m.focus == enums.FocusContacts && i == m.selectedContact
 		selected := i == m.selectedContact
 
 		nameStyle := components.Value
@@ -149,7 +150,7 @@ func (m *Model) renderTokenList(width int) string {
 	rows := make([]string, 0, len(m.tokens))
 
 	for i, token := range m.tokens {
-		active := m.focus == views.FocusTokens && m.selectedToken == i
+		active := m.focus == enums.FocusTokens && m.selectedToken == i
 		selected := m.selectedToken == i
 
 		marker := "  "

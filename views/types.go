@@ -11,15 +11,6 @@ const (
 	ScreenError
 )
 
-type FocusArea int
-
-const (
-	FocusAmount FocusArea = iota
-	FocusContacts
-	FocusTokens
-	FocusSimulate
-	FocusSend
-)
 
 type Contact struct {
 	Name    string

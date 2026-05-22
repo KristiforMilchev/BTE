@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"bos/enums"
 	"bos/utils"
 	"bos/views"
 	"strings"
@@ -33,12 +34,12 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "S", "shift+s":
 		return m.beginSend()
 	case "p", "P":
-		m.focus = views.FocusContacts
+		m.focus = enums.FocusContacts
 		m.syncFocus()
 		m.statusMessage = "Recipient picker active"
 		return m, nil
 	case "esc":
-		m.focus = views.FocusAmount
+		m.focus = enums.FocusAmount
 		m.syncFocus()
 		m.statusMessage = "Amount editor active"
 		return m, nil
@@ -46,11 +47,11 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch msg.String() {
 	case "left", "h":
-		m.focus = views.FocusAmount
+		m.focus = enums.FocusAmount
 		m.syncFocus()
 		return m, nil
 	case "right", "l":
-		m.focus = views.FocusTokens
+		m.focus = enums.FocusTokens
 		m.syncFocus()
 		return m, nil
 	case "up", "k":
@@ -63,7 +64,7 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.activateFocusedItem()
 	}
 
-	if m.focus == views.FocusAmount {
+	if m.focus == enums.FocusAmount {
 		var cmd tea.Cmd
 		m.amountInput, cmd = m.amountInput.Update(msg)
 		m.resetAnalysis()
@@ -75,7 +76,7 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m *Model) moveSelection(delta int) {
 	switch m.focus {
-	case views.FocusTokens:
+	case enums.FocusTokens:
 		if len(m.tokens) == 0 {
 			return
 		}
@@ -88,7 +89,7 @@ func (m *Model) moveSelection(delta int) {
 		}
 		m.resetAnalysis()
 		m.statusMessage = "Selected asset: " + m.selectedAsset().Symbol
-	case views.FocusContacts:
+	case enums.FocusContacts:
 		if len(m.contacts) == 0 {
 			return
 		}
@@ -101,11 +102,11 @@ func (m *Model) moveSelection(delta int) {
 		}
 		m.resetAnalysis()
 		m.statusMessage = "Selected recipient: " + m.selectedRecipient().Name
-	case views.FocusAmount:
+	case enums.FocusAmount:
 		if delta > 0 {
-			m.focus = views.FocusContacts
+			m.focus = enums.FocusContacts
 		} else {
-			m.focus = views.FocusTokens
+			m.focus = enums.FocusTokens
 		}
 		m.syncFocus()
 	}
@@ -113,23 +114,23 @@ func (m *Model) moveSelection(delta int) {
 
 func (m *Model) activateFocusedItem() (tea.Model, tea.Cmd) {
 	switch m.focus {
-	case views.FocusContacts:
-		m.focus = views.FocusAmount
+	case enums.FocusContacts:
+		m.focus = enums.FocusAmount
 		m.syncFocus()
 		m.statusMessage = "Recipient selected: " + m.selectedRecipient().Name
-	case views.FocusTokens:
-		m.focus = views.FocusAmount
+	case enums.FocusTokens:
+		m.focus = enums.FocusAmount
 		m.syncFocus()
 		m.statusMessage = "Asset selected: " + m.selectedAsset().Symbol
 		m.resetAnalysis()
-	case views.FocusAmount:
+	case enums.FocusAmount:
 		m.statusMessage = "Amount set: " + strings.TrimSpace(m.amountInput.Value())
 	}
 	return m, nil
 }
 
 func (m *Model) syncFocus() {
-	if m.focus == views.FocusAmount {
+	if m.focus == enums.FocusAmount {
 		m.amountInput.Focus()
 		return
 	}
@@ -146,13 +147,13 @@ func (m *Model) runFakeSimulation() {
 	amount := strings.TrimSpace(m.amountInput.Value())
 	if amount == "" {
 		m.statusMessage = "Enter an amount before simulation"
-		m.focus = views.FocusAmount
+		m.focus = enums.FocusAmount
 		m.syncFocus()
 		return
 	}
 	if _, err := utils.ParseEtherToWei(amount); err != nil {
 		m.statusMessage = "Invalid amount: " + err.Error()
-		m.focus = views.FocusAmount
+		m.focus = enums.FocusAmount
 		m.syncFocus()
 		return
 	}
@@ -166,13 +167,13 @@ func (m *Model) beginSend() (tea.Model, tea.Cmd) {
 	amount := strings.TrimSpace(m.amountInput.Value())
 	if amount == "" {
 		m.statusMessage = "Enter an amount before sending"
-		m.focus = views.FocusAmount
+		m.focus = enums.FocusAmount
 		m.syncFocus()
 		return m, nil
 	}
 	if _, err := utils.ParseEtherToWei(amount); err != nil {
 		m.statusMessage = "Invalid amount: " + err.Error()
-		m.focus = views.FocusAmount
+		m.focus = enums.FocusAmount
 		m.syncFocus()
 		return m, nil
 	}
@@ -182,7 +183,7 @@ func (m *Model) beginSend() (tea.Model, tea.Cmd) {
 	}
 	if !common.IsHexAddress(m.selectedRecipient().Address) {
 		m.statusMessage = "Selected contact has an invalid address"
-		m.focus = views.FocusContacts
+		m.focus = enums.FocusContacts
 		m.syncFocus()
 		return m, nil
 	}

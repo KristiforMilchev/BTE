@@ -1,9 +1,9 @@
 package loading
 
-import "bos/views"
+import "bos/utils"
 
 func (m *Model) View() string {
-	return views.RenderCentered(
+	return utils.RenderCentered(
 		m.width,
 		m.height,
 		"Connecting to Ledger",

@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"bos/enums"
 	"bos/interfaces"
 	"bos/views"
 
@@ -27,7 +28,7 @@ type Model struct {
 
 	amountInput textinput.Model
 
-	focus views.FocusArea
+	focus enums.FocusArea
 
 	selectedToken   int
 	selectedContact int
@@ -59,7 +60,7 @@ func New(config Config) *Model {
 		balance:          config.Balance,
 		chainID:          config.ChainID,
 		amountInput:      amount,
-		focus:            views.FocusAmount,
+		focus:            enums.FocusAmount,
 		selectedToken:    0,
 		selectedContact:  0,
 		tokens:           tokens,

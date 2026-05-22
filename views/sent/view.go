@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"bos/components"
+	"bos/enums"
 	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
@@ -20,5 +21,5 @@ func (m *Model) View() string {
 	}, "\n")
 
 	body := lipgloss.NewStyle().Padding(2, 4).Render(components.Panel(66, content))
-	return views.RenderApp(m.width, m.height, views.FocusSend, "Transaction broadcast", "", body)
+	return views.RenderApp(m.width, m.height, enums.FocusSend, "Transaction broadcast", "", body)
 }
