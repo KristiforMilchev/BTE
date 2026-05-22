@@ -4,9 +4,12 @@ import (
 	"strings"
 
 	"bos/components"
+	"bos/components/panel"
 	"bos/constants"
 	"bos/enums"
+	"bos/layout"
 	"bos/types"
+	"bos/utils"
 	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
@@ -18,31 +21,23 @@ func (m *Model) View() string {
 }
 
 func (m *Model) renderDashboard() string {
-	outerWidth := safeWidth(m.width)
-	gap := 3
-	paddingX := 2
-	paddingY := 1
+	root := layout.Padding(2, 1,
+		layout.Row(
+			layout.Expanded(55, layout.WidgetFunc(m.renderTransferPanel)),
+			layout.Gap(3),
+			layout.Expanded(45, panel.New("Assets", &m.tokenList)),
+		),
+	)
 
-	availableWidth := components.Max(90, outerWidth-(paddingX*2)-gap)
-	leftWidth := availableWidth * 55 / 100
-	rightWidth := availableWidth - leftWidth - gap
-
-	availableHeight := components.Max(24, m.height-4-(paddingY*2))
-
-	left := m.renderTransferPanel(leftWidth, availableHeight)
-	right := m.renderWalletPanel(rightWidth, availableHeight)
-
-	row := lipgloss.JoinHorizontal(lipgloss.Top, left, "   ", right)
-
-	return lipgloss.NewStyle().
-		Width(outerWidth).
-		Padding(paddingY, paddingX).
-		Render(row)
+	return layout.Render(utils.SafeWidth(m.width), components.Max(24, m.height-4), root)
 }
 
-func (m *Model) renderTransferPanel(width int, height int) string {
-	asset := m.selectedAsset()
-	recipient := m.selectedRecipient()
+func (m *Model) renderTransferPanel(ctx layout.Context) string {
+	width := ctx.Constraints.Width
+	height := ctx.Constraints.Height
+
+	asset := m.tokenList.SelectedAsset()
+	recipient := m.contacts.SelectedRecipient()
 
 	innerWidth := components.Max(32, width-components.PanelStyle.GetHorizontalFrameSize()-4)
 
@@ -62,7 +57,7 @@ func (m *Model) renderTransferPanel(width int, height int) string {
 		components.Separator(innerWidth),
 		components.SectionTitle.Render("Contacts"),
 		"",
-		m.renderContacts(innerWidth),
+		m.contacts.View(),
 	}, "\n")
 
 	return components.PanelSized(width, height, body)
@@ -98,86 +93,6 @@ func (m *Model) renderPreviewBlock(width int) string {
 	}, "\n")
 }
 
-func (m *Model) renderContacts(width int) string {
-	if len(m.contacts) == 0 {
-		return components.MutedText.Render("No saved recipients")
-	}
-
-	rows := make([]string, 0, len(m.contacts))
-	for i, contact := range m.contacts {
-		active := m.focus == enums.FocusContacts && i == m.selectedContact
-		selected := i == m.selectedContact
-
-		nameStyle := components.Value
-		marker := "  "
-		if selected {
-			nameStyle = nameStyle.Copy().Foreground(components.Accent)
-		}
-		if active {
-			marker = components.FocusMarker(true)
-		}
-
-		row := marker + nameStyle.Render(components.Truncate(contact.Name, width-2)) + "\n" +
-			"  " + components.MutedText.Render(components.ShortAddress(contact.Address))
-		rows = append(rows, row)
-	}
-
-	return strings.Join(rows, "\n\n")
-}
-
-func (m *Model) renderWalletPanel(width int, height int) string {
-	contentWidth := components.Max(28, width-components.PanelStyle.GetHorizontalFrameSize()-4)
-
-	body := []string{
-		components.SectionTitle.Width(width).AlignHorizontal(lipgloss.Center).Render("Assets"),
-		"",
-		m.renderTokenList(contentWidth),
-		"",
-	}
-
-	return components.PanelSized(width, height, strings.Join(body, "\n"))
-}
-
-func (m *Model) renderTokenList(width int) string {
-	if len(m.tokens) == 0 {
-		return components.MutedText.Render("No assets loaded")
-	}
-
-	rows := make([]string, 0, len(m.tokens))
-
-	for i, token := range m.tokens {
-		active := m.focus == enums.FocusTokens && m.selectedToken == i
-		selected := m.selectedToken == i
-
-		marker := "  "
-		if active {
-			marker = components.FocusMarker(true)
-		}
-
-		symbolStyle := components.Value
-		if selected {
-			symbolStyle = symbolStyle.Copy().Foreground(components.Accent)
-		}
-
-		amountSymbol := components.Truncate(token.Balance+" "+token.Symbol, width-4)
-		address := components.Truncate(token.Address, width-12)
-
-		badge := lipgloss.NewStyle().Foreground(components.Success).Bold(true).Render("✓")
-		separator := components.MutedText.Render(strings.Repeat("─", max(8, width-4)))
-		padding := strings.Repeat(" ", max(1, width-lipgloss.Width(address)-lipgloss.Width("✓")-8))
-
-		block := strings.Join([]string{
-			marker + symbolStyle.Render(amountSymbol),
-			"  " + separator,
-			"  " + components.MutedText.Render(address) + padding + badge,
-		}, "\n")
-
-		rows = append(rows, block)
-	}
-
-	return strings.Join(rows, "\n\n")
-}
-
 func riskLabel(risk string) string {
 	switch strings.ToLower(risk) {
 	case "low":
@@ -189,11 +104,4 @@ func riskLabel(risk string) string {
 	default:
 		return risk
 	}
-}
-
-func safeWidth(width int) int {
-	if width < 100 {
-		return 100
-	}
-	return width
 }

@@ -6,145 +6,240 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type Node interface {
-	Render(width int, height int) string
+type Constraints struct {
+	Width  int
+	Height int
 }
 
-type RenderFunc func(width int, height int) string
+type Context struct {
+	Constraints Constraints
+}
 
-func (f RenderFunc) Render(width int, height int) string {
-	return f(width, height)
+type Widget interface {
+	Render(ctx Context) string
+}
+
+type WidgetFunc func(ctx Context) string
+
+func (f WidgetFunc) Render(ctx Context) string {
+	return f(ctx)
 }
 
 type Child struct {
-	Node     Node
-	Fixed    int
-	Expanded bool
+	Widget Widget
+	Fixed  int
+	Weight int
 }
 
-func Fixed(size int, node Node) Child {
-	return Child{Node: node, Fixed: size}
+func View(fn func(width int, height int) string) Widget {
+	return WidgetFunc(func(ctx Context) string {
+		return fn(ctx.Constraints.Width, ctx.Constraints.Height)
+	})
 }
 
-func Expanded(node Node) Child {
-	return Child{Node: node, Expanded: true}
-}
-
-func View(fn func(width int, height int) string) Node {
-	return RenderFunc(fn)
-}
-
-func Text(value string) Node {
-	return RenderFunc(func(width int, height int) string {
+func Text(value string) Widget {
+	return WidgetFunc(func(ctx Context) string {
 		return lipgloss.NewStyle().
-			Width(width).
-			Height(height).
+			Width(ctx.Constraints.Width).
+			Height(ctx.Constraints.Height).
 			Render(value)
 	})
 }
 
-func Row(children ...Child) Node {
-	return RenderFunc(func(width int, height int) string {
+func Fixed(size int, widget Widget) Child {
+	return Child{Fixed: size, Widget: widget}
+}
+
+func Expanded(weight int, widget Widget) Child {
+	if weight <= 0 {
+		weight = 1
+	}
+
+	return Child{Weight: weight, Widget: widget}
+}
+
+func Gap(size int) Child {
+	return Fixed(size, WidgetFunc(func(ctx Context) string {
+		height := max(1, ctx.Constraints.Height)
+		lines := make([]string, height)
+
+		for i := range lines {
+			lines[i] = strings.Repeat(" ", max(0, size))
+		}
+
+		return strings.Join(lines, "\n")
+	}))
+}
+
+func Row(children ...Child) Widget {
+	return WidgetFunc(func(ctx Context) string {
+		width := max(0, ctx.Constraints.Width)
+		height := max(0, ctx.Constraints.Height)
+
 		fixed := 0
-		expandedCount := 0
+		totalWeight := 0
 
 		for _, child := range children {
-			if child.Expanded {
-				expandedCount++
-			} else {
+			if child.Fixed > 0 {
 				fixed += child.Fixed
+				continue
 			}
+
+			totalWeight += max(1, child.Weight)
 		}
 
-		remaining := width - fixed
-		if remaining < 0 {
-			remaining = 0
-		}
-
-		expandedWidth := 0
-		if expandedCount > 0 {
-			expandedWidth = remaining / expandedCount
-		}
-
+		remaining := max(0, width-fixed)
+		used := 0
 		parts := make([]string, 0, len(children))
 
-		for _, child := range children {
+		for i, child := range children {
 			childWidth := child.Fixed
-			if child.Expanded {
-				childWidth = expandedWidth
+
+			if child.Fixed <= 0 {
+				weight := max(1, child.Weight)
+				childWidth = remaining * weight / max(1, totalWeight)
+
+				// Give rounding remainder to the last flexible child so rows fill exactly.
+				if isLastFlexible(children, i) {
+					childWidth = max(0, remaining-used)
+				}
 			}
 
-			parts = append(parts, child.Node.Render(childWidth, height))
+			used += childWidth
+
+			if child.Widget == nil {
+				parts = append(parts, "")
+				continue
+			}
+
+			parts = append(parts, child.Widget.Render(Context{
+				Constraints: Constraints{Width: childWidth, Height: height},
+			}))
 		}
 
 		return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
 	})
 }
 
-func Col(children ...Child) Node {
-	return RenderFunc(func(width int, height int) string {
+func Column(children ...Child) Widget {
+	return WidgetFunc(func(ctx Context) string {
+		width := max(0, ctx.Constraints.Width)
+		height := max(0, ctx.Constraints.Height)
+
 		fixed := 0
-		expandedCount := 0
+		totalWeight := 0
 
 		for _, child := range children {
-			if child.Expanded {
-				expandedCount++
-			} else {
+			if child.Fixed > 0 {
 				fixed += child.Fixed
+				continue
 			}
+
+			totalWeight += max(1, child.Weight)
 		}
 
-		remaining := height - fixed
-		if remaining < 0 {
-			remaining = 0
-		}
-
-		expandedHeight := 0
-		if expandedCount > 0 {
-			expandedHeight = remaining / expandedCount
-		}
-
+		remaining := max(0, height-fixed)
+		used := 0
 		parts := make([]string, 0, len(children))
 
-		for _, child := range children {
+		for i, child := range children {
 			childHeight := child.Fixed
-			if child.Expanded {
-				childHeight = expandedHeight
+
+			if child.Fixed <= 0 {
+				weight := max(1, child.Weight)
+				childHeight = remaining * weight / max(1, totalWeight)
+
+				if isLastFlexible(children, i) {
+					childHeight = max(0, remaining-used)
+				}
 			}
 
-			parts = append(parts, child.Node.Render(width, childHeight))
+			used += childHeight
+
+			if child.Widget == nil {
+				parts = append(parts, "")
+				continue
+			}
+
+			parts = append(parts, child.Widget.Render(Context{
+				Constraints: Constraints{Width: width, Height: childHeight},
+			}))
 		}
 
 		return lipgloss.JoinVertical(lipgloss.Left, parts...)
 	})
 }
 
-func Gap(size int) Node {
-	return RenderFunc(func(width int, height int) string {
-		lines := make([]string, max(1, height))
-		for i := range lines {
-			lines[i] = strings.Repeat(" ", size)
-		}
-		return strings.Join(lines, "\n")
-	})
-}
+func Padding(x int, y int, child Widget) Widget {
+	return WidgetFunc(func(ctx Context) string {
+		width := max(0, ctx.Constraints.Width)
+		height := max(0, ctx.Constraints.Height)
 
-func Panel(node Node) Node {
-	return RenderFunc(func(width int, height int) string {
-		innerWidth := max(0, width-2)
-		innerHeight := max(0, height-2)
+		innerWidth := max(0, width-(x*2))
+		innerHeight := max(0, height-(y*2))
+
+		body := ""
+		if child != nil {
+			body = child.Render(Context{
+				Constraints: Constraints{Width: innerWidth, Height: innerHeight},
+			})
+		}
 
 		return lipgloss.NewStyle().
 			Width(width).
 			Height(height).
-			Border(lipgloss.NormalBorder()).
-			Render(node.Render(innerWidth, innerHeight))
+			Padding(y, x).
+			Render(body)
 	})
+}
+
+func Constrain(width int, height int, child Widget) Widget {
+	return WidgetFunc(func(ctx Context) string {
+		if child == nil {
+			return ""
+		}
+
+		return child.Render(Context{
+			Constraints: Constraints{
+				Width:  choose(width, ctx.Constraints.Width),
+				Height: choose(height, ctx.Constraints.Height),
+			},
+		})
+	})
+}
+
+func Render(width int, height int, widget Widget) string {
+	if widget == nil {
+		return ""
+	}
+
+	return widget.Render(Context{
+		Constraints: Constraints{Width: width, Height: height},
+	})
+}
+
+func isLastFlexible(children []Child, index int) bool {
+	for i := index + 1; i < len(children); i++ {
+		if children[i].Fixed <= 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+func choose(value int, fallback int) int {
+	if value > 0 {
+		return value
+	}
+
+	return fallback
 }
 
 func max(a, b int) int {
 	if a > b {
 		return a
 	}
+
 	return b
 }
