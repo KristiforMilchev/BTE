@@ -1,5 +1,3 @@
-src/bos
-src/vendor/
-external/buildroot/output/
-external/buildroot/dl/
-external/buildroot/.config
+blockcert.log
+bos
+vendor/

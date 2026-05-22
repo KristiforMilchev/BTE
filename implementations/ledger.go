@@ -19,6 +19,7 @@ import (
 
 type Ledger struct {
 	networkProvider interfaces.INetwork
+	tokens []interfaces.IERC20
 }
 
 func (l *Ledger) Account() (*accounts.Account, error) {
@@ -163,6 +164,8 @@ func (l *Ledger) SignTransaction(
 
 	return (*wallet).SignTx(*account, tx, chainID)
 }
+
+
 
 func NewLedger(networkProvider interfaces.INetwork) *Ledger {
 

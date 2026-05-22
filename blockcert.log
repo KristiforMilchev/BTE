@@ -1,8 +1,0 @@
-2026/05/21 15:34:49 ledger.go:25: Failed to connect to ledger -> no Ledger device found
-2026/05/21 16:00:48 ledger.go:25: Failed to connect to ledger -> no Ledger device found
-2026/05/21 16:13:13 ledger.go:25: Failed to connect to ledger -> no Ledger device found
-2026/05/21 16:23:57 ledger.go:25: Failed to connect to ledger -> Ledger status: Ethereum app offline | failed to derive address: reply lacks public key entry
-2026/05/21 16:29:57 ledger.go:51: Failed to connect to ledger -> no Ledger device found
-2026/05/21 16:30:13 ledger.go:25: Failed to connect to ledger -> no Ledger device found
-2026/05/21 16:30:17 ledger.go:25: Failed to connect to ledger -> Ledger status: Ethereum app offline | failed to derive address: reply lacks public key entry
-2026/05/22 11:27:39 ledger.go:25: Failed to connect to ledger -> no Ledger device found
