@@ -3,19 +3,16 @@
 DAEMON="syslogd"
 PIDFILE="/var/run/$DAEMON.pid"
 
-SYSLOGD_ARGS=""
+SYSLOGD_ARGS="-m 0"
 
 # shellcheck source=/dev/null
 [ -r "/etc/default/$DAEMON" ] && . "/etc/default/$DAEMON"
 
-# BusyBox' syslogd does not create a pidfile, so pass "-n" in the command line
-# and use "--make-pidfile" to instruct start-stop-daemon to create one.
 start() {
 	printf 'Starting %s: ' "$DAEMON"
 	# shellcheck disable=SC2086 # we need the word splitting
-	start-stop-daemon --start --background --make-pidfile \
-		--pidfile "$PIDFILE" --exec "/sbin/$DAEMON" \
-		-- -n $SYSLOGD_ARGS
+	start-stop-daemon -S -q -p "$PIDFILE" -x "/sbin/$DAEMON" \
+		-- $SYSLOGD_ARGS
 	status=$?
 	if [ "$status" -eq 0 ]; then
 		echo "OK"
@@ -27,33 +24,38 @@ start() {
 
 stop() {
 	printf 'Stopping %s: ' "$DAEMON"
-	start-stop-daemon --stop --pidfile "$PIDFILE" --exec "/sbin/$DAEMON"
+	start-stop-daemon -K -q -p "$PIDFILE"
 	status=$?
 	if [ "$status" -eq 0 ]; then
 		echo "OK"
 	else
 		echo "FAIL"
-		return "$status"
 	fi
-	while start-stop-daemon --stop --test --quiet --pidfile "$PIDFILE" \
-		--exec "/sbin/$DAEMON"; do
-		sleep 0.1
-	done
-	rm -f "$PIDFILE"
 	return "$status"
 }
 
 restart() {
 	stop
+	sleep 1
 	start
 }
 
+# SIGHUP makes syslogd reload its configuration
+reload() {
+	printf 'Reloading %s: ' "$DAEMON"
+	start-stop-daemon -K -s HUP -q -p "$PIDFILE"
+	status=$?
+	if [ "$status" -eq 0 ]; then
+		echo "OK"
+	else
+		echo "FAIL"
+	fi
+	return "$status"
+}
+
 case "$1" in
-	start|stop|restart)
+	start|stop|restart|reload)
 		"$1";;
-	reload)
-		# Restart, since there is no true "reload" feature.
-		restart;;
 	*)
 		echo "Usage: $0 {start|stop|restart|reload}"
 		exit 1

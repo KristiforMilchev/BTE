@@ -24,3 +24,8 @@ lock:x:54:
 netdev:x:82:
 users:x:100:
 nobody:x:65534:
+seat:x:101:
+input:x:102:
+kvm:x:103:
+sgx:x:104:
+uuidd:x:105:

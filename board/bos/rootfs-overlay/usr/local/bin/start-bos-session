@@ -1,0 +1,42 @@
+#!/bin/sh
+
+mount -t proc proc /proc || true
+mount -t sysfs sysfs /sys || true
+mount -t devtmpfs devtmpfs /dev || true
+
+mkdir -p /dev/pts
+mount -t devpts devpts /dev/pts -o gid=5,mode=620 || true
+ln -sf /dev/pts/ptmx /dev/ptmx
+
+mount -t tmpfs tmpfs /run || true
+
+mkdir -p /run/user/0 /run/seatd
+chmod 700 /run/user/0
+chmod 755 /run/seatd
+
+export XDG_RUNTIME_DIR=/run/user/0
+export WLR_BACKENDS=drm
+export WLR_RENDERER=pixman
+export TERM=foot
+export COLORTERM=truecolor
+export HOME=/root
+export USER=root
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+echo "BOS INIT: starting seatd" > /dev/ttyS0 2>/dev/null || true
+seatd -g root >> /dev/ttyS0 2>&1 &
+
+sleep 1
+
+echo "BOS INIT: starting cage/foot/bos on tty1" > /dev/ttyS0 2>/dev/null || true
+
+setsid sh -c '
+  exec </dev/tty1 >/dev/tty1 2>/dev/ttyS0
+  cage -- foot -F -e /usr/local/bin/bos
+  echo "CAGE EXITED: $?" > /dev/ttyS0
+' &
+
+while true; do
+  sleep 3600
+done
