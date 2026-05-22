@@ -129,12 +129,7 @@ func (m *Model) renderWalletPanel(width int, height int) string {
 	contentWidth := components.Max(28, width-components.PanelStyle.GetHorizontalFrameSize()-4)
 
 	body := []string{
-		components.SectionTitle.Render("Wallet"),
-		"",
-		components.KeyValue("Balance", m.walletBalance(), contentWidth),
-		components.KeyValue("Address", components.ShortAddress(m.address), contentWidth),
-		components.Separator(contentWidth),
-		components.SectionTitle.Render("Assets"),
+		components.SectionTitle.Width(width).AlignHorizontal(lipgloss.Center).Render("Assets"),
 		"",
 		m.renderTokenList(contentWidth),
 		"",

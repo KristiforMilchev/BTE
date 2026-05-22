@@ -26,8 +26,8 @@ type Ledger struct {
 
 func (l *Ledger) Account() (*common.Address, error) {
 	address, err := l.accounts.Account()
-	if err != nil {
-		log.Printf("account doesn't exist -> %s", err)
+	if err == nil {
+		return address, nil
 	}
 
 	wallet, account, err := openLedger(false)
@@ -37,6 +37,13 @@ func (l *Ledger) Account() (*common.Address, error) {
 	}
 	defer wallet.Close()
 	address = &account.Address
+
+	err = l.accounts.AddAccount(*address)
+	if err != nil {
+		log.Printf("Failed to create account! %s", err)
+		return nil, err
+	}
+
 	return address, nil
 }
 
