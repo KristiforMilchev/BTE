@@ -19,7 +19,7 @@ var (
 	MutedText     = lipgloss.NewStyle().Foreground(Muted)
 	HelpTextStyle = lipgloss.NewStyle().Foreground(Muted)
 	AmountText    = lipgloss.NewStyle().Foreground(Text).Bold(true)
-	HeroAmount    = lipgloss.NewStyle().Foreground(Text).Bold(true)
+	HeroAmount    = lipgloss.NewStyle().AlignHorizontal(lipgloss.Center).Foreground(Text).Bold(true)
 	ErrorText     = lipgloss.NewStyle().Foreground(Danger).Bold(true)
 	SuccessText   = lipgloss.NewStyle().Foreground(Success).Bold(true)
 

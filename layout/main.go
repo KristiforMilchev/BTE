@@ -193,6 +193,26 @@ func Padding(x int, y int, child Widget) Widget {
 	})
 }
 
+func Center(child Widget) Widget {
+	return WidgetFunc(func(ctx Context) string {
+		if child == nil {
+			return ""
+		}
+		rendered := child.Render(ctx)
+		return lipgloss.Place(ctx.Constraints.Width, ctx.Constraints.Height, lipgloss.Center, lipgloss.Center, rendered)
+	})
+}
+
+func CenterH(child Widget) Widget {
+	return WidgetFunc(func(ctx Context) string {
+		if child == nil {
+			return ""
+		}
+		rendered := child.Render(ctx)
+		return lipgloss.PlaceHorizontal(ctx.Constraints.Width, lipgloss.Center, rendered)
+	})
+}
+
 func Constrain(width int, height int, child Widget) Widget {
 	return WidgetFunc(func(ctx Context) string {
 		if child == nil {
@@ -236,10 +256,3 @@ func choose(value int, fallback int) int {
 	return fallback
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-
-	return b
-}

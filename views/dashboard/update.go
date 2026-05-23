@@ -61,7 +61,7 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if m.focus == enums.FocusAmount {
 		var cmd tea.Cmd
-		m.amountInput, cmd = m.amountInput.Update(msg)
+		m.amount.Focus()
 		m.resetAnalysis()
 		return m, cmd
 	}
@@ -81,17 +81,17 @@ func (m *Model) activateFocusedItem() (tea.Model, tea.Cmd) {
 		m.statusMessage = "Asset selected: " + m.tokenList.SelectedAsset().Symbol
 		m.resetAnalysis()
 	case enums.FocusAmount:
-		m.statusMessage = "Amount set: " + strings.TrimSpace(m.amountInput.Value())
+		m.statusMessage = "Amount set: " + strings.TrimSpace(m.amount.Value())
 	}
 	return m, nil
 }
 
 func (m *Model) syncFocus() {
 	if m.focus == enums.FocusAmount {
-		m.amountInput.Focus()
+		m.amount.Focus()
 		return
 	}
-	m.amountInput.Blur()
+	m.amount.Blur()
 }
 
 func (m *Model) resetAnalysis() {

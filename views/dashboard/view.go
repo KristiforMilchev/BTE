@@ -6,7 +6,6 @@ import (
 	"bos/components"
 	"bos/components/panel"
 	"bos/constants"
-	"bos/enums"
 	"bos/layout"
 	"bos/types"
 	"bos/utils"
@@ -37,18 +36,18 @@ func (m *Model) renderTransferPanel(ctx layout.Context) string {
 	height := ctx.Constraints.Height
 
 	asset := m.tokenList.SelectedAsset()
+	m.amount.SetSymbol(asset)
 	recipient := m.contacts.SelectedRecipient()
-
 	innerWidth := components.Max(32, width-components.PanelStyle.GetHorizontalFrameSize()-4)
 
-	amount := strings.TrimSpace(m.amountInput.Value())
+	amount := strings.TrimSpace(m.amount.Value())
 	amountDisplay := amount
 	if amountDisplay == "" {
 		amountDisplay = "0.00"
 	}
 
 	body := strings.Join([]string{
-		renderAmountHero(amountDisplay, asset.Symbol, m.focus == enums.FocusAmount, innerWidth),
+		m.amount.View(),
 		"",
 		renderRecipientBlock(recipient, innerWidth),
 		"",

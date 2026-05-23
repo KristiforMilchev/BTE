@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"bos/components/amount"
 	"bos/components/contacts"
 	tokenlist "bos/components/token_list"
 	"bos/enums"
@@ -9,7 +10,6 @@ import (
 	"bos/utils"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -31,8 +31,6 @@ type Model struct {
 	balance string
 	chainID string
 
-	amountInput textinput.Model
-
 	focus enums.FocusArea
 
 	simulationStatus string
@@ -41,22 +39,16 @@ type Model struct {
 	statusMessage    string
 	tokenList        tokenlist.Model
 	contacts         contacts.Model
+	amount           *amount.Model
 }
 
 func New(config Config) *Model {
-
-	amount := textinput.New()
-	amount.Placeholder = "0.01"
-	amount.CharLimit = 32
-	amount.Width = 0
-	amount.Focus()
 
 	return &Model{
 		wallet:           config.Wallet,
 		address:          config.Address,
 		balance:          config.Balance,
 		chainID:          config.ChainID,
-		amountInput:      amount,
 		focus:            enums.FocusAmount,
 		simulationStatus: "Not Run",
 		riskLevel:        "—",
@@ -64,13 +56,14 @@ func New(config Config) *Model {
 		statusMessage:    "Wallet loaded",
 		tokenList:        *tokenlist.New(),
 		contacts:         *contacts.NewContacts(),
+		amount:           amount.New(),
 	}
 }
 
 func (m *Model) Init() tea.Cmd { return nil }
 
 func (m *Model) beginSend() (tea.Model, tea.Cmd) {
-	amount := strings.TrimSpace(m.amountInput.Value())
+	amount := strings.TrimSpace(m.amount.Value())
 	if amount == "" {
 		m.statusMessage = "Enter an amount before sending"
 		m.focus = enums.FocusAmount
@@ -102,7 +95,7 @@ func (m *Model) beginSend() (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) runFakeSimulation() {
-	amount := strings.TrimSpace(m.amountInput.Value())
+	amount := strings.TrimSpace(m.amount.Value())
 	if amount == "" {
 		m.statusMessage = "Enter an amount before simulation"
 		m.focus = enums.FocusAmount
