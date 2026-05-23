@@ -54,6 +54,10 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = enums.FocusContacts
 		// m.statusMessage = "Recipient picker active"
 		return m, nil
+	case "s":
+		m.focus = enums.FocusSimulate
+	case "S":
+		return m.beginSend()
 	}
 
 	switch msg.String() {

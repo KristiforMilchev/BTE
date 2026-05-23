@@ -2,6 +2,7 @@ package footer
 
 import (
 	"bos/components"
+	"bos/di"
 	"bos/utils"
 	"strings"
 
@@ -17,9 +18,9 @@ func RenderFooter(
 	width = utils.SafeWidth(width)
 
 	status := "Ledger Connected • "
-	networkName := "Blockcert"
+	networkName := di.GetNetwork().Name()
 	if rpcURL != "" {
-		status += "Network • " + networkName + " • " + "RPC Online • " + rpcURL
+		status += "Network • " + *networkName + " • " + "RPC Online • " + rpcURL
 	}
 
 	if strings.TrimSpace(statusMessage) != "" {

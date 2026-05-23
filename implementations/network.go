@@ -2,6 +2,7 @@ package implementations
 
 import (
 	"bos/constants"
+	"bos/repositories"
 	"bos/types"
 	"bos/utils"
 	"context"
@@ -15,7 +16,8 @@ import (
 )
 
 type Network struct {
-	network types.Network
+	network           types.Network
+	networkRepository repositories.NetworkRepository
 }
 
 func (n *Network) Set(rpc *string, name *string, symbol *string, chain big.Int) error {
@@ -88,7 +90,11 @@ func (n *Network) Balance(address common.Address) (*types.NetworkBalanace, error
 	}, nil
 }
 
-func NewNetworkProvider() *Network {
+func (n *Network) Name() *string {
+	return n.network.Name
+}
+
+func NewNetworkProvider(networkRepository repositories.NetworkRepository) *Network {
 	rpc := constants.RpcURL
 	symbol := "BGC"
 	name := "Blockcert"
@@ -97,7 +103,8 @@ func NewNetworkProvider() *Network {
 			Name:   &name,
 			Symbol: &symbol,
 			Rpc:    &rpc,
-			Chain:  big.NewInt(1337),
+			Chain:  big.NewInt(31337),
 		},
+		networkRepository: networkRepository,
 	}
 }

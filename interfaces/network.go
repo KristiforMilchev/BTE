@@ -15,4 +15,5 @@ type INetwork interface {
 	Change(rpc *string) error
 	Active() (*ethclient.Client, *big.Int, context.Context, context.CancelFunc, error)
 	Balance(address common.Address) (*types.NetworkBalanace, error)
+	Name() *string
 }
