@@ -1,7 +1,9 @@
 package tokenlist
 
 import (
+	"bos/di"
 	"bos/types"
+	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -11,17 +13,31 @@ type Model struct {
 	selectedToken int
 }
 
-func (m *Model) Init() tea.Cmd { return nil }
+func (m *Model) Init() tea.Cmd {
+
+	return nil
+
+}
 
 func New() *Model {
-	tokens := []types.Token{
-		{Symbol: "ETH", Name: "Native Network Token", Balance: "0", Address: "native", Native: true},
-		{Symbol: "USDT", Name: "Tether USD", Balance: "1240.22", Address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"},
-		{Symbol: "LINK", Name: "Chainlink", Balance: "4.12", Address: "0x514910771af9ca656af840dff83e8264ecf986ca"},
-		{Symbol: "UNI", Name: "Uniswap", Balance: "42.11", Address: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"},
+	m := &Model{}
+
+	network := di.GetNetwork()
+	address, err := di.GetWallet().Account()
+	if err != nil {
+		log.Printf("Can't find account to pin balance -> %s", err)
+	}
+	details, err := network.Balance(*address)
+	if err != nil {
+		log.Printf("Get read network balance for address -> %s | %s", address, err)
 	}
 
-	return &Model{
-		tokens: tokens,
+	log.Printf("m.balance: %s\n", details.Balance)
+
+	tokens := []types.Token{
+		{Symbol: "ETH", Name: details.Address, Balance: details.Balance, Address: "native", Native: true},
 	}
+	m.tokens = tokens
+	log.Println("Updating network balance")
+	return m
 }

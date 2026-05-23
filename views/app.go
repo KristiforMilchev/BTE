@@ -1,6 +1,7 @@
 package views
 
 import (
+	activeWalletLabel "bos/components/active_wallet_label"
 	"bos/components/footer"
 	"bos/components/header"
 	"bos/enums"
@@ -21,9 +22,9 @@ func RenderApp(
 	if height <= 0 {
 		height = 30
 	}
-
+	wallet := activeWalletLabel.New()
 	headerView := header.RenderHeader(width, focus)
-	footerView := footer.RenderFooter(width, statusMessage, rpcURL)
+	footerView := footer.RenderFooter(width, statusMessage, rpcURL, wallet.View())
 
 	bodyHeight := height -
 		lipgloss.Height(headerView) -
