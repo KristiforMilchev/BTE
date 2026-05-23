@@ -24,10 +24,10 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "up", "k":
 		m.moveSelection(-1)
-		return m, nil
+		return nil, nil
 	case "down", "j":
 		m.moveSelection(1)
-		return m, nil
+		return nil, nil
 	case "enter", " ":
 		// return m.activateFocusedItem()
 	}

@@ -29,7 +29,6 @@ func Clamp(value, min, max int) int {
 	}
 	return value
 }
-
 func Truncate(s string, width int) string {
 	if width <= 0 {
 		return ""
@@ -40,7 +39,17 @@ func Truncate(s string, width int) string {
 	if width <= 1 {
 		return "…"
 	}
-	return s[:width-1] + "…"
+
+	out := ""
+	for _, r := range s {
+		next := out + string(r)
+		if lipgloss.Width(next+"…") > width {
+			break
+		}
+		out = next
+	}
+
+	return out + "…"
 }
 
 func ShortAddress(address string) string {
@@ -52,11 +61,14 @@ func ShortAddress(address string) string {
 }
 
 func Separator(width int) string {
-	return lipgloss.NewStyle().
-		Foreground(Border).
-		Render(strings.Repeat("─", Max(1, width)))
-}
+	width = Max(1, width)
 
+	return lipgloss.NewStyle().
+		Width(width).
+		MaxWidth(width).
+		Foreground(Border).
+		Render(strings.Repeat("─", width))
+}
 func KeyValue(key string, value string, width int) string {
 	keyWidth := 14
 	if width > 0 && width < 24 {

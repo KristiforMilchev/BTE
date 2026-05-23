@@ -3,7 +3,6 @@ package dashboard
 import (
 	"bos/enums"
 	"bos/types"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -21,81 +20,53 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.focus == enums.FocusContacts {
+		msg, _ := m.contacts.Update(msg)
+		if msg != nil {
+			m.focus = enums.FocusSend
+		}
+		return m, nil
+	}
+
+	if m.focus == enums.FocusTokens {
+		msg, _ := m.tokenList.Update(msg)
+		if msg != nil {
+			m.focus = enums.FocusSend
+		}
+		return m, nil
+	}
+
+	if m.focus == enums.FocusAmount {
+		msg, _ := m.amount.Update(msg)
+		if msg != nil {
+			m.focus = enums.FocusSend
+			m.amount.Focus()
+		}
+		return m, nil
+	}
+
 	switch msg.String() {
 	case "q", "ctrl+c":
 		return m, tea.Quit
 	case "r":
 		return m, func() tea.Msg { return types.NavigateMsg{Screen: enums.ScreenLoading} }
-
 	case "p", "P":
 		m.focus = enums.FocusContacts
-		m.syncFocus()
-		m.statusMessage = "Recipient picker active"
-		return m, nil
-	case "esc":
-		m.focus = enums.FocusAmount
-		m.syncFocus()
-		m.statusMessage = "Amount editor active"
+		// m.statusMessage = "Recipient picker active"
 		return m, nil
 	}
 
 	switch msg.String() {
-	case "left", "h":
+	case "e", "E":
 		m.focus = enums.FocusAmount
-		m.syncFocus()
+		m.amount.Focus()
+		m.transaction.Reset()
 		return m, nil
-	case "right", "l":
+	case "t", "T":
 		m.focus = enums.FocusTokens
-		m.syncFocus()
 		return m, nil
-	case "up", "k", "down", "j":
-		if m.focus == enums.FocusTokens {
-			_, cmd := m.tokenList.Update(msg)
-			m.resetAnalysis()
-			return m, cmd
-		}
-		return m, nil
-	case "enter", " ":
-		return m.activateFocusedItem()
-	}
 
-	if m.focus == enums.FocusAmount {
-		var cmd tea.Cmd
-		m.amount.Focus()
-		m.resetAnalysis()
-		return m, cmd
 	}
 
 	return m, nil
-}
-
-func (m *Model) activateFocusedItem() (tea.Model, tea.Cmd) {
-	switch m.focus {
-	case enums.FocusContacts:
-		m.focus = enums.FocusAmount
-		m.syncFocus()
-		m.statusMessage = "Recipient selected: " + m.contacts.SelectedRecipient().Name
-	case enums.FocusTokens:
-		m.focus = enums.FocusAmount
-		m.syncFocus()
-		m.statusMessage = "Asset selected: " + m.tokenList.SelectedAsset().Symbol
-		m.resetAnalysis()
-	case enums.FocusAmount:
-		m.statusMessage = "Amount set: " + strings.TrimSpace(m.amount.Value())
-	}
-	return m, nil
-}
-
-func (m *Model) syncFocus() {
-	if m.focus == enums.FocusAmount {
-		m.amount.Focus()
-		return
-	}
-	m.amount.Blur()
-}
-
-func (m *Model) resetAnalysis() {
-	m.simulationStatus = "Not Run"
-	m.riskLevel = "—"
-	m.estimatedFee = "—"
 }

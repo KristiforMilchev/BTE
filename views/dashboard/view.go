@@ -4,106 +4,88 @@ import (
 	"strings"
 
 	"bos/components"
-	"bos/components/panel"
+	recipientPanel "bos/components/recipient_panel"
 	"bos/constants"
-	"bos/types"
 	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/consensys/gnark-crypto/utils"
 )
 
 func (m *Model) View() string {
-	body := m.renderDashboard()
-	return views.RenderApp(m.width, m.height, m.focus, m.statusMessage, constants.RpcURL, body)
+	return views.RenderApp(
+		m.width,
+		m.height,
+		m.focus,
+		m.statusMessage,
+		constants.RpcURL,
+		m.renderDashboard(),
+	)
 }
 
 func (m *Model) renderDashboard() string {
-	leftWidth := m.width / 2
-	rightWidth := m.width - leftWidth
+	frame := components.PanelStyle.GetHorizontalFrameSize()
 
-	transferPanel := lipgloss.NewStyle().
-		Width(leftWidth).
-		Height(m.height - 4).
-		Render(m.renderTransferPanelContent(leftWidth))
+	bodyWidth := m.width - frame*2
+	leftWidth := bodyWidth / 2
+	rightWidth := bodyWidth - leftWidth
 
-	assetsContent := panel.Render("Assets", rightWidth, m.height-4, m.tokenList.ViewWidth(rightWidth))
-
-	assetsPanel := lipgloss.NewStyle().
-		Width(rightWidth).
-		Height(m.height - 4).
-		Render(assetsContent)
+	transferPanel := m.renderTransferPanelContent(leftWidth)
+	assetsPanel := m.renderTokensPanel(rightWidth)
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, transferPanel, assetsPanel)
 }
 
 func (m *Model) renderTransferPanelContent(width int) string {
+	bodyWidth := PanelBodyWidth(width)
+
 	asset := m.tokenList.SelectedAsset()
 	m.amount.SetSymbol(asset)
+
 	recipient := m.contacts.SelectedRecipient()
 
-	innerWidth := components.Max(32, width-components.PanelStyle.GetHorizontalFrameSize()-4)
-
-	amount := strings.TrimSpace(m.amount.Value())
-	amountDisplay := amount
-	if amountDisplay == "" {
-		amountDisplay = "0.00"
-	}
-
 	body := strings.Join([]string{
-		lipgloss.PlaceHorizontal(innerWidth, lipgloss.Center, m.amount.View()),
+		lipgloss.PlaceHorizontal(bodyWidth, lipgloss.Center, m.amount.View()),
 		"",
-		renderRecipientBlock(recipient, innerWidth),
+		recipientPanel.Render(recipient, bodyWidth),
 		"",
-		m.renderPreviewBlock(innerWidth),
+		m.transaction.View(),
 		"",
-		components.Separator(innerWidth),
+		components.Separator(bodyWidth),
 		components.SectionTitle.Render("Contacts"),
 		"",
-		m.contacts.ViewWidth(innerWidth),
+		m.contacts.ViewWidth(bodyWidth),
 	}, "\n")
 
-	return components.PanelSized(width, m.height-4, body)
+	return PanelContentSized(width, m.height-4, body)
 }
 
-func renderAmountHero(amount string, symbol string, active bool, width int) string {
-	amountStyle := components.HeroAmount
-	if active {
-		amountStyle = amountStyle.Copy().Foreground(components.Accent)
-	}
+func (m *Model) renderTokensPanel(width int) string {
+	bodyWidth := PanelBodyWidth(width)
 
-	amountLine := lipgloss.PlaceHorizontal(width, lipgloss.Center, amountStyle.Render(amount))
-	symbolLine := lipgloss.PlaceHorizontal(width, lipgloss.Center, components.SectionTitle.Render(symbol))
-
-	return "\n" + amountLine + "\n\n" + symbolLine + "\n"
-}
-
-func renderRecipientBlock(recipient types.Contact, width int) string {
-	return strings.Join([]string{
-		components.SectionTitle.Render("Recipient"),
-		components.Value.Render(components.Truncate(recipient.Name, width)),
-		components.MutedText.Render(components.ShortAddress(recipient.Address)),
-	}, "\n")
-}
-
-func (m *Model) renderPreviewBlock(width int) string {
-	return strings.Join([]string{
-		components.SectionTitle.Render("Preview"),
+	body := strings.Join([]string{
+		components.SectionTitle.
+			Width(bodyWidth).
+			MaxWidth(bodyWidth).
+			AlignHorizontal(lipgloss.Center).
+			Render("Assets"),
 		"",
-		components.KeyValue("Fee", m.estimatedFee, width),
-		components.KeyValue("Risk", riskLabel(m.riskLevel), width),
-		components.KeyValue("Simulation", m.simulationStatus, width),
+		m.tokenList.ViewWidth(bodyWidth),
 	}, "\n")
-}
 
-func riskLabel(risk string) string {
-	switch strings.ToLower(risk) {
-	case "low":
-		return lipgloss.NewStyle().Foreground(components.Success).Bold(true).Render(risk)
-	case "medium":
-		return lipgloss.NewStyle().Foreground(components.Warning).Bold(true).Render(risk)
-	case "high", "critical":
-		return lipgloss.NewStyle().Foreground(components.Danger).Bold(true).Render(risk)
-	default:
-		return risk
+	return PanelContentSized(width, m.height-4, body)
+}
+func PanelContentSized(width int, height int, body string) string {
+	width = utils.Max(8, width)
+
+	style := components.PanelStyle.Width(width)
+
+	if height > 0 {
+		style = style.Height(utils.Max(1, height))
 	}
+
+	return style.Render(body)
+}
+func PanelBodyWidth(width int) int {
+	return utils.Max(1, width-components.PanelStyle.GetHorizontalPadding())
 }

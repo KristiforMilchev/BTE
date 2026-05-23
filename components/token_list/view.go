@@ -13,6 +13,8 @@ func (m *Model) Render(width int) string {
 		return components.MutedText.Render("No assets loaded")
 	}
 
+	innerWidth := components.Max(8, width)
+
 	rows := make([]string, 0, len(m.tokens))
 
 	for i, token := range m.tokens {
@@ -20,20 +22,37 @@ func (m *Model) Render(width int) string {
 
 		symbolStyle := components.Value
 		if selected {
-			symbolStyle = symbolStyle.Foreground(components.Accent)
+			symbolStyle = symbolStyle.Copy().Foreground(components.Accent)
 		}
 
-		amountSymbol := components.Truncate(token.Balance+" "+token.Symbol, width-4)
-		address := components.Truncate(token.Address, width-12)
+		amountSymbol := components.Truncate(
+			token.Balance+" "+token.Symbol,
+			innerWidth,
+		)
 
-		badge := lipgloss.NewStyle().Foreground(components.Success).Bold(true).Render("✓")
-		separator := components.MutedText.Render(strings.Repeat("─", max(8, width-4)))
-		padding := strings.Repeat(" ", max(1, width-lipgloss.Width(address)-lipgloss.Width("✓")-8))
+		address := components.Truncate(
+			token.Address,
+			innerWidth-4,
+		)
+
+		addr := components.MutedText.Render(address)
+
+		badge := lipgloss.NewStyle().
+			Foreground(components.Success).
+			Bold(true).
+			Render("✓")
+
+		gap := components.Max(
+			0,
+			innerWidth-2-lipgloss.Width(addr)-lipgloss.Width(badge),
+		)
+
+		bottomLine := "  " + addr + strings.Repeat(" ", gap) + badge
 
 		block := strings.Join([]string{
-			symbolStyle.Render(amountSymbol),
-			"  " + separator,
-			"  " + components.MutedText.Render(address) + padding + badge,
+			symbolStyle.Width(innerWidth).MaxWidth(innerWidth).Render(amountSymbol),
+			components.Separator(innerWidth),
+			bottomLine,
 		}, "\n")
 
 		rows = append(rows, block)

@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func (m Model) View() string {
+func (m *Model) View() string {
 	amount := strings.TrimSpace(m.amountInput.Value())
 	if amount == "" {
 		amount = "0.00"
