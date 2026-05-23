@@ -28,7 +28,7 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "down", "j":
 		m.moveSelection(1)
 		return nil, nil
-	case "enter", " ":
+	case "enter", "space":
 		// return m.activateFocusedItem()
 	}
 

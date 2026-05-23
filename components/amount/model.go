@@ -34,8 +34,6 @@ func New() *Model {
 	amount.Placeholder = "0.01"
 	amount.CharLimit = 32
 	amount.Width = 0
-	amount.Focus()
-	amount.SetValue("12")
 
 	return &Model{
 		active:      false,

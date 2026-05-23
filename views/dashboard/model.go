@@ -50,7 +50,7 @@ func New(config Config) *Model {
 		address:     config.Address,
 		balance:     config.Balance,
 		chainID:     config.ChainID,
-		focus:       enums.FocusAmount,
+		focus:       enums.FocusSend,
 		contacts:    contacts.NewContacts(),
 		amount:      amount.New(),
 		tokenList:   tokenlist.New(),
