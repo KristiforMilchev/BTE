@@ -4,14 +4,11 @@ import (
 	"strings"
 
 	"bos/components"
-	"bos/layout"
 
 	"github.com/charmbracelet/lipgloss"
 )
 
-func (m *Model) Render(ctx layout.Context) string {
-	width := ctx.Constraints.Width
-
+func (m *Model) Render(width int) string {
 	if len(m.tokens) == 0 {
 		return components.MutedText.Render("No assets loaded")
 	}
@@ -46,5 +43,9 @@ func (m *Model) Render(ctx layout.Context) string {
 }
 
 func (m *Model) View() string {
-	return m.Render(layout.Context{Constraints: layout.Constraints{Width: 80, Height: 24}})
+	return m.Render(80)
+}
+
+func (m *Model) ViewWidth(width int) string {
+	return m.Render(width)
 }

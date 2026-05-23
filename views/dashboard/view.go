@@ -6,9 +6,7 @@ import (
 	"bos/components"
 	"bos/components/panel"
 	"bos/constants"
-	"bos/layout"
 	"bos/types"
-	"bos/utils"
 	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
@@ -20,24 +18,29 @@ func (m *Model) View() string {
 }
 
 func (m *Model) renderDashboard() string {
-	root := layout.Padding(2, 1,
-		layout.Row(
-			layout.Expanded(55, layout.WidgetFunc(m.renderTransferPanel)),
-			layout.Gap(3),
-			layout.Expanded(45, panel.New("Assets", &m.tokenList)),
-		),
-	)
+	leftWidth := m.width / 2
+	rightWidth := m.width - leftWidth
 
-	return layout.Render(utils.SafeWidth(m.width), components.Max(24, m.height-4), root)
+	transferPanel := lipgloss.NewStyle().
+		Width(leftWidth).
+		Height(m.height - 4).
+		Render(m.renderTransferPanelContent(leftWidth))
+
+	assetsContent := panel.Render("Assets", rightWidth, m.height-4, m.tokenList.ViewWidth(rightWidth))
+
+	assetsPanel := lipgloss.NewStyle().
+		Width(rightWidth).
+		Height(m.height - 4).
+		Render(assetsContent)
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, transferPanel, assetsPanel)
 }
 
-func (m *Model) renderTransferPanel(ctx layout.Context) string {
-	width := ctx.Constraints.Width
-	height := ctx.Constraints.Height
-
+func (m *Model) renderTransferPanelContent(width int) string {
 	asset := m.tokenList.SelectedAsset()
 	m.amount.SetSymbol(asset)
 	recipient := m.contacts.SelectedRecipient()
+
 	innerWidth := components.Max(32, width-components.PanelStyle.GetHorizontalFrameSize()-4)
 
 	amount := strings.TrimSpace(m.amount.Value())
@@ -47,7 +50,7 @@ func (m *Model) renderTransferPanel(ctx layout.Context) string {
 	}
 
 	body := strings.Join([]string{
-		m.amount.View(),
+		lipgloss.PlaceHorizontal(innerWidth, lipgloss.Center, m.amount.View()),
 		"",
 		renderRecipientBlock(recipient, innerWidth),
 		"",
@@ -56,10 +59,10 @@ func (m *Model) renderTransferPanel(ctx layout.Context) string {
 		components.Separator(innerWidth),
 		components.SectionTitle.Render("Contacts"),
 		"",
-		m.contacts.View(),
+		m.contacts.ViewWidth(innerWidth),
 	}, "\n")
 
-	return components.PanelSized(width, height, body)
+	return components.PanelSized(width, m.height-4, body)
 }
 
 func renderAmountHero(amount string, symbol string, active bool, width int) string {
