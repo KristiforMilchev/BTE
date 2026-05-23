@@ -1,7 +1,6 @@
 package views
 
 import (
-	"bos/components"
 	"bos/components/footer"
 	"bos/components/header"
 	"bos/enums"
@@ -10,18 +9,36 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func RenderApp(width int, height int, focus enums.FocusArea, statusMessage string, rpcURL string, content string) string {
+func RenderApp(
+	width int,
+	height int,
+	focus enums.FocusArea,
+	statusMessage string,
+	rpcURL string,
+	renderContent func(width int, height int) string,
+) string {
 	width = utils.SafeWidth(width)
 	if height <= 0 {
 		height = 30
 	}
 
-	return components.App.Render(
-		lipgloss.JoinVertical(
-			lipgloss.Left,
-			header.RenderHeader(width, focus),
-			content,
-			footer.RenderFooter(width, statusMessage, rpcURL),
-		),
+	headerView := header.RenderHeader(width, focus)
+	footerView := footer.RenderFooter(width, statusMessage, rpcURL)
+
+	bodyHeight := height -
+		lipgloss.Height(headerView) -
+		lipgloss.Height(footerView)
+
+	if bodyHeight < 1 {
+		bodyHeight = 1
+	}
+
+	body := renderContent(width, bodyHeight)
+
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		headerView,
+		body,
+		footerView,
 	)
 }

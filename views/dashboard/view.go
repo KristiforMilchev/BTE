@@ -9,7 +9,6 @@ import (
 	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/consensys/gnark-crypto/utils"
 )
 
 func (m *Model) View() string {
@@ -19,24 +18,38 @@ func (m *Model) View() string {
 		m.focus,
 		m.statusMessage,
 		constants.RpcURL,
-		m.renderDashboard(),
+		func(width, height int) string {
+			return m.renderDashboard(width, height)
+		},
 	)
 }
 
-func (m *Model) renderDashboard() string {
-	frame := components.PanelStyle.GetHorizontalFrameSize()
+func (m *Model) renderDashboard(width int, height int) string {
+	outerGap := 2
+	centerGap := 2
 
-	bodyWidth := m.width - frame*2
-	leftWidth := bodyWidth / 2
-	rightWidth := bodyWidth - leftWidth
+	availableWidth := width - outerGap - outerGap - centerGap
+	if availableWidth < 40 {
+		availableWidth = 40
+	}
 
-	transferPanel := m.renderTransferPanelContent(leftWidth)
-	assetsPanel := m.renderTokensPanel(rightWidth)
+	leftWidth := availableWidth / 2
+	rightWidth := availableWidth - leftWidth
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, transferPanel, assetsPanel)
+	transferPanel := m.renderTransferPanelContent(leftWidth, height)
+	assetsPanel := m.renderTokensPanel(rightWidth, height)
+
+	return strings.Repeat(" ", outerGap) +
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			transferPanel,
+			strings.Repeat(" ", centerGap),
+			assetsPanel,
+		) +
+		strings.Repeat(" ", outerGap)
 }
 
-func (m *Model) renderTransferPanelContent(width int) string {
+func (m *Model) renderTransferPanelContent(width int, height int) string {
 	bodyWidth := PanelBodyWidth(width)
 
 	asset := m.tokenList.SelectedAsset()
@@ -57,10 +70,10 @@ func (m *Model) renderTransferPanelContent(width int) string {
 		m.contacts.ViewWidth(bodyWidth),
 	}, "\n")
 
-	return PanelContentSized(width, m.height-4, body)
+	return PanelContentSized(width, height, body)
 }
 
-func (m *Model) renderTokensPanel(width int) string {
+func (m *Model) renderTokensPanel(width int, height int) string {
 	bodyWidth := PanelBodyWidth(width)
 
 	body := strings.Join([]string{
@@ -73,19 +86,21 @@ func (m *Model) renderTokensPanel(width int) string {
 		m.tokenList.ViewWidth(bodyWidth),
 	}, "\n")
 
-	return PanelContentSized(width, m.height-4, body)
+	return PanelContentSized(width, height, body)
 }
+
 func PanelContentSized(width int, height int, body string) string {
-	width = utils.Max(8, width)
+	width = components.Max(8, width)
 
 	style := components.PanelStyle.Width(width)
 
 	if height > 0 {
-		style = style.Height(utils.Max(1, height))
+		style = style.Height(components.Max(1, height-components.PanelStyle.GetVerticalFrameSize()))
 	}
 
 	return style.Render(body)
 }
+
 func PanelBodyWidth(width int) int {
-	return utils.Max(1, width-components.PanelStyle.GetHorizontalPadding())
+	return components.Max(1, width-components.PanelStyle.GetHorizontalPadding())
 }
