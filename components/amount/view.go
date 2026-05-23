@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/common-nighthawk/go-figure"
 )
 
 func (m *Model) View() string {
@@ -18,7 +19,9 @@ func (m *Model) View() string {
 		amountStyle = amountStyle.Foreground(components.Accent)
 	}
 
-	amountLine := amountStyle.Render(amount)
+	fig := figure.NewFigure(amount, "big", true)
+
+	amountLine := amountStyle.Render(fig.String())
 	symbolLine := components.SectionTitle.Render(m.token.Symbol)
 
 	width := max(lipgloss.Width(amountLine), lipgloss.Width(symbolLine))

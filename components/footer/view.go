@@ -16,10 +16,10 @@ func RenderFooter(
 ) string {
 	width = utils.SafeWidth(width)
 
-	status := "Ledger Connected • RPC Online"
-
+	status := "Ledger Connected • "
+	networkName := "Blockcert"
 	if rpcURL != "" {
-		status += " • " + rpcURL
+		status += "Network • " + networkName + " • " + "RPC Online • " + rpcURL
 	}
 
 	if strings.TrimSpace(statusMessage) != "" {
