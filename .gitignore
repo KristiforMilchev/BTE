@@ -1,3 +1,5 @@
 blockcert.log
 bos
 vendor/
+.codex/
+AGENTS.md

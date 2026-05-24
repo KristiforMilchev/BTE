@@ -16,6 +16,15 @@ var swaps []interfaces.ISwapRouter
 var storage interfaces.IStorage
 var register repositories.RepositoryRegister
 
+type Dependencies struct {
+	Wallet   interfaces.IWallet
+	Network  interfaces.INetwork
+	Logger   interfaces.ILogger
+	Swaps    []interfaces.ISwapRouter
+	Storage  interfaces.IStorage
+	Register *repositories.RepositoryRegister
+}
+
 func SetupDependencies() {
 	setupDatabase()
 	register = repositories.NewRegister(storage)
@@ -38,6 +47,21 @@ func SetupDependencies() {
 	}
 
 	logger = loggerInstance
+}
+
+func SetupDependenciesWith(deps Dependencies) {
+	wallet = deps.Wallet
+	network = deps.Network
+	logger = deps.Logger
+	swaps = deps.Swaps
+	storage = deps.Storage
+
+	if deps.Register != nil {
+		register = *deps.Register
+		return
+	}
+
+	register = repositories.RepositoryRegister{}
 }
 
 func setupDatabase() {

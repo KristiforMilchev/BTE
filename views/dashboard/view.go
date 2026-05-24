@@ -1,7 +1,6 @@
 package dashboard
 
 import (
-	"log"
 	"strings"
 
 	"bos/components"
@@ -37,7 +36,6 @@ func (m *Model) View() string {
 	}
 
 	if m.networkPopup.Visible {
-		log.Printf("m.height: %v\n", m.height)
 		return overlay.Composite(
 			m.networkPopup.View(),
 			base,
