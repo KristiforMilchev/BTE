@@ -3,6 +3,7 @@ package dashboard
 import (
 	"bos/components/amount"
 	"bos/components/contacts"
+	networkDialog "bos/components/network_dialog"
 	tokenlist "bos/components/token_list"
 	transactionPreview "bos/components/transaction_preview"
 	"bos/enums"
@@ -41,20 +42,23 @@ type Model struct {
 	transaction *transactionPreview.Model
 	amount      *amount.Model
 	tokenList   *tokenlist.Model
+
+	networkDialog *networkDialog.Model
 }
 
 func New(config Config) *Model {
 
 	return &Model{
-		wallet:      config.Wallet,
-		address:     config.Address,
-		balance:     config.Balance,
-		chainID:     config.ChainID,
-		focus:       enums.FocusSend,
-		contacts:    contacts.NewContacts(),
-		amount:      amount.New(),
-		tokenList:   tokenlist.New(),
-		transaction: transactionPreview.New(6),
+		wallet:        config.Wallet,
+		address:       config.Address,
+		balance:       config.Balance,
+		chainID:       config.ChainID,
+		focus:         enums.FocusSend,
+		contacts:      contacts.NewContacts(),
+		amount:        amount.New(),
+		tokenList:     tokenlist.New(),
+		transaction:   transactionPreview.New(6),
+		networkDialog: networkDialog.New(),
 	}
 }
 

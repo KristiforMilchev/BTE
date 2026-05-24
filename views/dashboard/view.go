@@ -9,10 +9,11 @@ import (
 	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
+	overlay "github.com/rmhubbert/bubbletea-overlay"
 )
 
 func (m *Model) View() string {
-	return views.RenderApp(
+	base := views.RenderApp(
 		m.width,
 		m.height,
 		m.focus,
@@ -22,6 +23,19 @@ func (m *Model) View() string {
 			return m.renderDashboard(width, height)
 		},
 	)
+
+	if m.networkDialog.Visible {
+		return overlay.Composite(
+			m.networkDialog.View(),
+			base,
+			overlay.Center,
+			overlay.Center,
+			0,
+			0,
+		)
+	}
+
+	return base
 }
 
 func (m *Model) renderDashboard(width int, height int) string {

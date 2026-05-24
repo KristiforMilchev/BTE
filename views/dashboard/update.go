@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	networkDialog "bos/components/network_dialog"
 	"bos/enums"
 	"bos/types"
 
@@ -13,9 +14,28 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		return m, nil
+
+	case networkDialog.SubmittedMsg:
+		m.networkDialog.Visible = false
+		// save msg.Network here
+		return m, nil
+
+	case networkDialog.CancelledMsg:
+		m.networkDialog.Visible = false
+		return m, nil
+	}
+
+	if m.networkDialog.Visible {
+		var cmd tea.Cmd
+		m.networkDialog, cmd = m.networkDialog.Update(msg)
+		return m, cmd
+	}
+
+	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
+
 	return m, nil
 }
 
@@ -58,6 +78,10 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = enums.FocusSimulate
 	case "S":
 		return m.beginSend()
+	case "N", "n":
+		m.networkDialog = networkDialog.New()
+		m.networkDialog.Visible = true
+		return m, nil
 	}
 
 	switch msg.String() {
