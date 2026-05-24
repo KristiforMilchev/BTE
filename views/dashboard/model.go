@@ -4,6 +4,7 @@ import (
 	"bos/components/amount"
 	"bos/components/contacts"
 	networkDialog "bos/components/network_dialog"
+	networksPopup "bos/components/network_popup"
 	tokenlist "bos/components/token_list"
 	transactionPreview "bos/components/transaction_preview"
 	"bos/enums"
@@ -44,6 +45,7 @@ type Model struct {
 	tokenList   *tokenlist.Model
 
 	networkDialog *networkDialog.Model
+	networkPopup  *networksPopup.Model
 }
 
 func New(config Config) *Model {
@@ -59,6 +61,7 @@ func New(config Config) *Model {
 		tokenList:     tokenlist.New(),
 		transaction:   transactionPreview.New(6),
 		networkDialog: networkDialog.New(),
+		networkPopup:  networksPopup.New(),
 	}
 }
 

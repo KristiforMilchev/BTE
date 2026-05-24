@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	networkDialog "bos/components/network_dialog"
+	networksPopup "bos/components/network_popup"
 	"bos/enums"
 	"bos/types"
 
@@ -78,9 +79,13 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = enums.FocusSimulate
 	case "S":
 		return m.beginSend()
-	case "N", "n":
+	case "N":
 		m.networkDialog = networkDialog.New()
 		m.networkDialog.Visible = true
+		return m, nil
+	case "n":
+		m.networkPopup = networksPopup.New()
+		m.networkPopup.Visible = true
 		return m, nil
 	}
 
