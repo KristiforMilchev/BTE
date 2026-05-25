@@ -8,10 +8,12 @@ import (
 	tokenlist "bos/components/token_list"
 	transactionPreview "bos/components/transaction_preview"
 	transactionsComponent "bos/components/transactions"
+	"bos/di"
 	"bos/enums"
 	"bos/interfaces"
 	"bos/types"
 	"bos/utils"
+	"log"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -32,10 +34,6 @@ type Model struct {
 	width  int
 	height int
 
-	address string
-	balance string
-	chainID string
-
 	statusMessage string
 
 	focus enums.FocusArea
@@ -54,9 +52,6 @@ func New(config Config) *Model {
 
 	return &Model{
 		wallet:        config.Wallet,
-		address:       config.Address,
-		balance:       config.Balance,
-		chainID:       config.ChainID,
 		focus:         enums.FocusSend,
 		contacts:      contacts.NewContacts(),
 		amount:        amount.New(),
@@ -69,6 +64,11 @@ func New(config Config) *Model {
 }
 
 func (m *Model) Init() tea.Cmd { return nil }
+
+func (m *Model) onNetworkChanged() {
+	m.tokenList = tokenlist.New()
+
+}
 
 func sampleTransactions() []types.Transaction {
 	return []types.Transaction{
@@ -128,8 +128,14 @@ func (m *Model) beginSend() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	account, err := di.GetWallet().Account()
+	if err != nil {
+		log.Printf("Can't start transaction account is nil -> %s", err)
+		return m, nil
+	}
+
 	draft := types.TxDraft{
-		FromAddress: m.address, RecipientName: m.contacts.SelectedRecipient().Name, RecipientAddress: m.contacts.SelectedRecipient().Address,
+		FromAddress: account.Hex(), RecipientName: m.contacts.SelectedRecipient().Name, RecipientAddress: m.contacts.SelectedRecipient().Address,
 		Amount: amount, Asset: m.tokenList.SelectedAsset(), EstimatedFee: m.transaction.EstimatedFee(),
 		SimulationStatus: m.transaction.SimulationStatus(), RiskLevel: m.transaction.RiskLevel(),
 	}

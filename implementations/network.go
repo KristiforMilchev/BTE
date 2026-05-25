@@ -6,8 +6,8 @@ import (
 	"bos/types"
 	"bos/utils"
 	"context"
-	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"time"
 
@@ -40,13 +40,7 @@ func (n *Network) Change(network *types.Network) {
 
 func (n *Network) Active() (*ethclient.Client, *big.Int, context.Context, context.CancelFunc, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-
-	if constants.RpcURL == "" {
-		cancel()
-		return nil, nil, nil, nil, errors.New("RPC URL is empty")
-	}
-
-	client, err := ethclient.DialContext(ctx, constants.RpcURL)
+	client, err := ethclient.DialContext(ctx, *n.network.Rpc)
 	if err != nil {
 		cancel()
 		return nil, nil, nil, nil, fmt.Errorf("failed to connect to RPC %q: %w", constants.RpcURL, err)
@@ -79,7 +73,7 @@ func (n *Network) Balance(address common.Address) (*types.NetworkBalanace, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get balance: %w", err)
 	}
-
+	log.Printf("Balance is: %s", balance)
 	ether := utils.WeiToEther(balance)
 
 	return &types.NetworkBalanace{
