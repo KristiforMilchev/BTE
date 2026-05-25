@@ -2,9 +2,16 @@ package networksPopup
 
 import (
 	"bos/components/search"
+	"bos/types"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+type SubmittedMsg struct {
+	Network types.Network
+}
+
+type CancelledMsg struct{}
 
 func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	if m.search == nil {
@@ -60,7 +67,7 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 }
 
 func (m *Model) moveSelection(delta int) {
-	if len(m.filtered) == 0 {
+	if len(*m.filtered) == 0 {
 		return
 	}
 
@@ -68,7 +75,7 @@ func (m *Model) moveSelection(delta int) {
 	if m.selected < 0 {
 		m.selected = 0
 	}
-	if m.selected >= len(m.filtered) {
-		m.selected = len(m.filtered) - 1
+	if m.selected >= len(*m.filtered) {
+		m.selected = len(*m.filtered) - 1
 	}
 }

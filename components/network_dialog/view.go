@@ -18,6 +18,7 @@ func (m *Model) View() string {
 		m.field("RPC", 1),
 		m.field("Symbol", 2),
 		m.field("Chain Id", 3),
+		m.field("Block Explorer", 4),
 		"",
 		helpStyle.Render("Tab/Enter next • Shift+Tab back • Esc cancel"),
 	)

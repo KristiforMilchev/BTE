@@ -2,6 +2,8 @@ package networkDialog
 
 import (
 	"bos/components"
+	"bos/di"
+	"log"
 	"strconv"
 	"strings"
 
@@ -36,6 +38,7 @@ type Network struct {
 
 type SubmittedMsg struct {
 	Network Network
+	err     error
 }
 
 type CancelledMsg struct{}
@@ -51,7 +54,7 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func New() *Model {
-	labels := []string{"Name", "RPC", "Symbol", "Chain Id"}
+	labels := []string{"Name", "RPC", "Symbol", "Chain Id", "https://explorer.com"}
 	inputs := make([]textinput.Model, len(labels))
 
 	for i, label := range labels {
@@ -106,11 +109,24 @@ func (m *Model) submit() tea.Cmd {
 			chainID = 0
 		}
 
+		networkRepository := di.Repositories().Network
+		name := strings.TrimSpace(m.inputs[0].Value())
+		rpc := strings.TrimSpace(m.inputs[1].Value())
+		symbol := strings.TrimSpace(m.inputs[2].Value())
+		blockExplorer := strings.TrimSpace(m.inputs[4].Value())
+
+		err = networkRepository.Create(&name, &rpc, &symbol, &chainID, &blockExplorer)
+		if err != nil {
+			log.Printf("It looks like something went wrong when saving the new network can't submit-> %s ", err)
+			return nil
+		}
+
+		log.Printf("RPC saved to the database %s", name)
 		return SubmittedMsg{
 			Network: Network{
-				Name:    strings.TrimSpace(m.inputs[0].Value()),
-				RPC:     strings.TrimSpace(m.inputs[1].Value()),
-				Symbol:  strings.TrimSpace(m.inputs[2].Value()),
+				Name:    name,
+				RPC:     rpc,
+				Symbol:  symbol,
 				ChainID: chainID,
 			},
 		}

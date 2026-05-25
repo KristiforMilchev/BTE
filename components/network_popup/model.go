@@ -1,9 +1,13 @@
 package networksPopup
 
 import (
+	"log"
+	"strconv"
 	"strings"
 
 	"bos/components/search"
+	"bos/di"
+	"bos/types"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -15,27 +19,14 @@ const (
 	focusTable
 )
 
-type Network struct {
-	Name    string
-	RPC     string
-	Symbol  string
-	ChainID int64
-}
-
-type SubmittedMsg struct {
-	Network Network
-}
-
-type CancelledMsg struct{}
-
 type Model struct {
 	Visible bool
 
 	search *search.Model
 	focus  focusArea
 
-	networks []Network
-	filtered []Network
+	networks *[]types.Network
+	filtered *[]types.Network
 	selected int
 	offset   int
 }
@@ -48,7 +39,11 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func New() *Model {
-	networks := defaultNetworks()
+	networks, err := di.GetNetwork().Networks()
+	if err != nil {
+		log.Printf("no networks: %s", err)
+	}
+
 	return &Model{
 		Visible:  false,
 		search:   search.New("Search networks", 64),
@@ -78,16 +73,17 @@ func (m *Model) filterNetworks(query string) {
 	if query == "" {
 		m.filtered = m.networks
 	} else {
-		filtered := make([]Network, 0, len(m.networks))
-		for _, network := range m.networks {
-			if strings.Contains(strings.ToLower(network.Name), query) ||
-				strings.Contains(strings.ToLower(network.RPC), query) ||
-				strings.Contains(strings.ToLower(network.Symbol), query) ||
-				strings.Contains(strings.ToLower(chainIDString(network.ChainID)), query) {
+		filtered := make([]types.Network, 0, len(*m.networks))
+		for _, network := range *m.networks {
+			chainId := strconv.FormatInt(network.Chain.Int64(), 10)
+			if strings.Contains(strings.ToLower(*network.Name), query) ||
+				strings.Contains(strings.ToLower(*network.Rpc), query) ||
+				strings.Contains(strings.ToLower(*network.Symbol), query) ||
+				strings.Contains(strings.ToLower(chainId), query) {
 				filtered = append(filtered, network)
 			}
 		}
-		m.filtered = filtered
+		m.filtered = &filtered
 	}
 
 	m.selected = 0
@@ -96,24 +92,11 @@ func (m *Model) filterNetworks(query string) {
 
 func (m *Model) submit() tea.Cmd {
 	return func() tea.Msg {
-		if len(m.filtered) == 0 {
+		if m.filtered == nil || len(*m.filtered) == 0 {
 			return nil
 		}
-		return SubmittedMsg{Network: m.filtered[m.selected]}
-	}
-}
 
-func defaultNetworks() []Network {
-	return []Network{
-		{Name: "Blockcert", RPC: "https://rpc.blockcert.net", Symbol: "ETH", ChainID: 707},
-		{Name: "Ethereum", RPC: "https://eth.llamarpc.com", Symbol: "ETH", ChainID: 1},
-		{Name: "Sepolia", RPC: "https://ethereum-sepolia-rpc.publicnode.com", Symbol: "ETH", ChainID: 11155111},
-		{Name: "Polygon", RPC: "https://polygon-rpc.com", Symbol: "POL", ChainID: 137},
-		{Name: "Arbitrum One", RPC: "https://arb1.arbitrum.io/rpc", Symbol: "ETH", ChainID: 42161},
-		{Name: "Optimism", RPC: "https://mainnet.optimism.io", Symbol: "ETH", ChainID: 10},
-		{Name: "Base", RPC: "https://mainnet.base.org", Symbol: "ETH", ChainID: 8453},
-		{Name: "BSC", RPC: "https://bsc-dataseed.binance.org", Symbol: "BNB", ChainID: 56},
-		{Name: "Avalanche", RPC: "https://api.avax.network/ext/bc/C/rpc", Symbol: "AVAX", ChainID: 43114},
-		{Name: "Localhost", RPC: "http://127.0.0.1:8545", Symbol: "ETH", ChainID: 31337},
+		selected := (*m.filtered)[m.selected]
+		return SubmittedMsg{Network: selected}
 	}
 }

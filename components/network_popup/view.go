@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"bos/components"
+	"bos/types"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -53,7 +54,7 @@ func (m *Model) tableView(height int) string {
 	separator := components.Separator(nameWidth + rpcWidth + chainIDWidth + 4)
 
 	rows := []string{header, separator}
-	if len(m.filtered) == 0 {
+	if m.filtered == nil || len(*m.filtered) == 0 {
 		rows = append(rows, components.MutedText.Render("No networks found"))
 		return strings.Join(rows, "\n")
 	}
@@ -61,10 +62,10 @@ func (m *Model) tableView(height int) string {
 	visibleRows := components.Max(1, height-2)
 	m.ensureSelectedVisible(visibleRows)
 
-	end := components.Min(len(m.filtered), m.offset+visibleRows)
+	end := components.Min(len(*m.filtered), m.offset+visibleRows)
 	for i := m.offset; i < end; i++ {
-		network := m.filtered[i]
-		row := formatNetworkRow(network)
+		network := (*m.filtered)[i]
+		row := formatNetworkRow(&network)
 		if i == m.selected {
 			row = components.FocusMarker(true) + lipgloss.NewStyle().
 				Foreground(components.Accent).
@@ -89,15 +90,16 @@ func (m *Model) ensureSelectedVisible(visibleRows int) {
 	if m.selected >= m.offset+visibleRows {
 		m.offset = m.selected - visibleRows + 1
 	}
-	if maxOffset := components.Max(0, len(m.filtered)-visibleRows); m.offset > maxOffset {
+	if maxOffset := components.Max(0, len(*m.filtered)-visibleRows); m.offset > maxOffset {
 		m.offset = maxOffset
 	}
 }
 
-func formatNetworkRow(network Network) string {
-	return padCell(network.Name, nameWidth) + "  " +
-		padCell(network.RPC, rpcWidth) + "  " +
-		padCell(chainIDString(network.ChainID), chainIDWidth)
+func formatNetworkRow(network *types.Network) string {
+	chain := strconv.FormatInt(network.Chain.Int64(), 10)
+	return padCell(*network.Name, nameWidth) + "  " +
+		padCell(*network.Rpc, rpcWidth) + "  " +
+		padCell(chain, chainIDWidth)
 }
 
 func padCell(value string, width int) string {
@@ -107,8 +109,4 @@ func padCell(value string, width int) string {
 		padding = 0
 	}
 	return value + strings.Repeat(" ", padding)
-}
-
-func chainIDString(chainID int64) string {
-	return strconv.FormatInt(chainID, 10)
 }

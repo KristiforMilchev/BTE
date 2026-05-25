@@ -1,6 +1,7 @@
 package components_test
 
 import (
+	"math/big"
 	"strings"
 	"testing"
 
@@ -57,7 +58,9 @@ func TestNetworkPopupSearchFiltersAndSelectionSubmitsNetwork(t *testing.T) {
 	if !ok {
 		t.Fatalf("network submit returned %T, want networksPopup.SubmittedMsg", submitted)
 	}
-	if submitted.Network.Name != "Base" || submitted.Network.ChainID != 8453 {
+
+	baseId := big.NewInt(8453)
+	if *submitted.Network.Name != "Base" || submitted.Network.Chain != baseId {
 		t.Fatalf("submitted network = %+v, want Base chain 8453", submitted.Network)
 	}
 }

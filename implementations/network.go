@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"time"
 
@@ -31,12 +32,17 @@ func (n *Network) Set(rpc *string, name *string, symbol *string, chain big.Int) 
 }
 
 func (n *Network) Networks() (*[]types.Network, error) {
-	//TODO implement after refactor
-	return nil, nil
+	return n.networkRepository.Networks()
 }
 
 func (n *Network) Change(rpc *string) error {
-	//TODO implement after refactor
+	network, err := n.networkRepository.NetworkByRpc(rpc)
+	if err != nil {
+		log.Println("Can't change RPC - doesn't exist aborting")
+		return err
+	}
+
+	n.network = *network
 	return nil
 }
 func (n *Network) Active() (*ethclient.Client, *big.Int, context.Context, context.CancelFunc, error) {
