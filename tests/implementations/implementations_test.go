@@ -27,10 +27,13 @@ func TestStorageInitCreatesSchemaAndExecutesQueries(t *testing.T) {
 
 	_, err := storage.Exec(
 		context.Background(),
-		"INSERT INTO networks (id, name, rpc) VALUES (?, ?, ?)",
+		"INSERT INTO networks (id, name, rpc, symbol, chain_id, block_explorer) VALUES (?, ?, ?, ?, ?, ?)",
 		"net-1",
 		"Local",
 		"http://localhost:8545",
+		"ETH",
+		1337,
+		"http://explorer",
 	)
 	if err != nil {
 		t.Fatalf("Exec() returned error: %v", err)

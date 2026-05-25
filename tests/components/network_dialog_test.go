@@ -4,6 +4,9 @@ import (
 	"testing"
 
 	networkDialog "bos/components/network_dialog"
+	"bos/di"
+	"bos/repositories"
+	"bos/tests/testmocks"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -20,6 +23,13 @@ func TestNetworkDialogCancelCommand(t *testing.T) {
 }
 
 func TestNetworkDialogSubmissionFromTypedInput(t *testing.T) {
+	storage := testmocks.NewStorage(t)
+	register := repositories.NewRegister(storage)
+	di.SetupDependenciesWith(di.Dependencies{Storage: storage, Register: &register})
+	t.Cleanup(func() {
+		di.SetupDependenciesWith(di.Dependencies{})
+	})
+
 	model := networkDialog.New()
 
 	for _, input := range []tea.KeyMsg{
@@ -30,6 +40,8 @@ func TestNetworkDialogSubmissionFromTypedInput(t *testing.T) {
 		key("E"), key("T"), key("H"),
 		key("tab"),
 		key("1"), key("3"), key("3"), key("7"),
+		key("tab"),
+		key("h"), key("t"), key("t"), key("p"),
 	} {
 		var cmd tea.Cmd
 		model, cmd = model.Update(input)

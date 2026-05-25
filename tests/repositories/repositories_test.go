@@ -51,10 +51,13 @@ func TestNetworkRepositoryNameReturnsNetworkNameByRPC(t *testing.T) {
 	rpc := "http://localhost:8545"
 	_, err := storage.Exec(
 		context.Background(),
-		"INSERT INTO networks (id, name, rpc) VALUES (?, ?, ?)",
+		"INSERT INTO networks (id, name, rpc, symbol, chain_id, block_explorer) VALUES (?, ?, ?, ?, ?, ?)",
 		"net-1",
 		"Local",
 		rpc,
+		"ETH",
+		1337,
+		"http://explorer",
 	)
 	if err != nil {
 		t.Fatalf("storage.Exec() returned error: %v", err)

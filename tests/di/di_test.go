@@ -42,8 +42,7 @@ func (mockNetwork) Networks() (*[]types.Network, error) {
 	return &[]types.Network{}, nil
 }
 
-func (mockNetwork) Change(_ *string) error {
-	return nil
+func (mockNetwork) Change(_ *types.Network) {
 }
 
 func (mockNetwork) Active() (*ethclient.Client, *big.Int, context.Context, context.CancelFunc, error) {
@@ -58,9 +57,16 @@ func (mockNetwork) Balance(address common.Address) (*types.NetworkBalanace, erro
 	}, nil
 }
 
-func (mockNetwork) Name() *string {
+func (mockNetwork) Network() types.Network {
 	name := "Mocknet"
-	return &name
+	rpc := "http://mock"
+	symbol := "ETH"
+	return types.Network{
+		Name:   &name,
+		Rpc:    &rpc,
+		Symbol: &symbol,
+		Chain:  big.NewInt(1337),
+	}
 }
 
 type mockLogger struct{}

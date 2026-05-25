@@ -18,7 +18,10 @@ CREATE TABLE accounts (
 CREATE TABLE networks (
 	id TEXT PRIMARY KEY,
 	name TEXT NOT NULL UNIQUE,
-	rpc TEXT NOT NULL
+	rpc TEXT NOT NULL,
+	symbol TEXT NOT NULL,
+	chain_id TEXT NOT NULL,
+	block_explorer TEXT
 );
 `
 
