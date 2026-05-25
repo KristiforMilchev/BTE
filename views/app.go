@@ -6,6 +6,7 @@ import (
 	"bos/components/header"
 	"bos/enums"
 	"bos/utils"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -23,7 +24,7 @@ func RenderApp(
 		height = 30
 	}
 	wallet := activeWalletLabel.New()
-	headerView := header.RenderHeader(width, focus)
+	headerView := header.RenderHeader(width, focus, strings.TrimSpace(rpcURL) != "")
 	footerView := footer.RenderFooter(width, statusMessage, rpcURL, wallet.View())
 
 	bodyHeight := height -

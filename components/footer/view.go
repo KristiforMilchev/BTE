@@ -16,6 +16,8 @@ func RenderFooter(
 	address string,
 ) string {
 	width = utils.SafeWidth(width)
+	sideGap := 2
+	contentWidth := components.Max(1, width-sideGap-sideGap)
 
 	status := "Ledger Connected • "
 	networkName := di.GetNetwork().Name()
@@ -27,20 +29,19 @@ func RenderFooter(
 		status += " • " + statusMessage
 	}
 
-	left := components.MutedText.Render(
-		components.Truncate(status, width),
-	)
-
 	right := address
-
-	leftWidth := lipgloss.Width(left)
 	rightWidth := lipgloss.Width(right)
 
-	spacerWidth := max(0, width-leftWidth-rightWidth)
+	left := components.MutedText.Render(
+		components.Truncate(status, components.Max(1, contentWidth-rightWidth)),
+	)
+
+	leftWidth := lipgloss.Width(left)
+	spacerWidth := max(0, contentWidth-leftWidth-rightWidth)
 
 	spacer := strings.Repeat(" ", spacerWidth)
 
-	row := left + spacer + right
+	row := strings.Repeat(" ", sideGap) + left + spacer + right + strings.Repeat(" ", sideGap)
 
 	return components.Separator(width) + "\n" + row
 }
