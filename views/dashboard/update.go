@@ -24,11 +24,23 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case networkDialog.CancelledMsg:
 		m.networkDialog.Visible = false
 		return m, nil
+	case networksPopup.SubmittedMsg:
+		m.networkPopup.Visible = false
+		return m, nil
+	case networksPopup.CancelledMsg:
+		m.networkPopup.Visible = false
+		return m, nil
 	}
 
 	if m.networkDialog.Visible {
 		var cmd tea.Cmd
 		m.networkDialog, cmd = m.networkDialog.Update(msg)
+		return m, cmd
+	}
+
+	if m.networkPopup.Visible {
+		var cmd tea.Cmd
+		m.networkPopup, cmd = m.networkPopup.Update(msg)
 		return m, cmd
 	}
 

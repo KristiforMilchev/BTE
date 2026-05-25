@@ -1,10 +1,30 @@
 package networksPopup
 
 import (
-	"bos/components"
+	"strconv"
 	"strings"
 
+	"bos/components"
+
 	"github.com/charmbracelet/lipgloss"
+)
+
+var (
+	dialogStyle = lipgloss.NewStyle().
+			Width(76).
+			Padding(1, 2).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(components.BorderOverlayer)
+
+	helpStyle = lipgloss.NewStyle().
+			Foreground(components.Muted)
+)
+
+const (
+	tableHeight  = 10
+	nameWidth    = 16
+	rpcWidth     = 38
+	chainIDWidth = 10
 )
 
 func (m *Model) View() string {
@@ -14,39 +34,81 @@ func (m *Model) View() string {
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
-		m.field("Name", 0),
-		m.field("RPC", 1),
-		m.field("Symbol", 2),
-		m.field("Chain Id", 3),
+		m.search.ViewWidth(70, m.focus == focusSearch),
 		"",
-		helpStyle.Render("Tab/Enter next • Shift+Tab back • Esc cancel"),
+		m.tableView(tableHeight),
+		"",
+		helpStyle.Render("F search • j/k move • enter/space select • tab switch • esc cancel"),
 	)
 
 	return dialogStyle.Render(content)
 }
 
-func (m *Model) field(label string, index int) string {
-	if index < 0 || index >= len(m.inputs) {
-		return ""
+func (m *Model) tableView(height int) string {
+	header := components.Value.Render(
+		padCell("NAME", nameWidth) + "  " +
+			padCell("RPC", rpcWidth) + "  " +
+			padCell("CHAINID", chainIDWidth),
+	)
+	separator := components.Separator(nameWidth + rpcWidth + chainIDWidth + 4)
+
+	rows := []string{header, separator}
+	if len(m.filtered) == 0 {
+		rows = append(rows, components.MutedText.Render("No networks found"))
+		return strings.Join(rows, "\n")
 	}
 
-	border := lipgloss.RoundedBorder()
+	visibleRows := components.Max(1, height-2)
+	m.ensureSelectedVisible(visibleRows)
 
-	top := "─ " + label + " "
-
-	width := 48
-	remaining := width - lipgloss.Width(top) - 2
-	if remaining < 0 {
-		remaining = 0
+	end := components.Min(len(m.filtered), m.offset+visibleRows)
+	for i := m.offset; i < end; i++ {
+		network := m.filtered[i]
+		row := formatNetworkRow(network)
+		if i == m.selected {
+			row = components.FocusMarker(true) + lipgloss.NewStyle().
+				Foreground(components.Accent).
+				Bold(true).
+				Render(row)
+		} else {
+			row = "  " + row
+		}
+		rows = append(rows, row)
 	}
 
-	border.Top = top + strings.Repeat("─", remaining)
+	return strings.Join(rows, "\n")
+}
 
-	style := inputBoxStyle.Border(border)
-
-	if m.focus == index {
-		style = style.BorderForeground(components.Accent)
+func (m *Model) ensureSelectedVisible(visibleRows int) {
+	if visibleRows < 1 {
+		visibleRows = 1
 	}
+	if m.selected < m.offset {
+		m.offset = m.selected
+	}
+	if m.selected >= m.offset+visibleRows {
+		m.offset = m.selected - visibleRows + 1
+	}
+	if maxOffset := components.Max(0, len(m.filtered)-visibleRows); m.offset > maxOffset {
+		m.offset = maxOffset
+	}
+}
 
-	return style.Render(m.inputs[index].View())
+func formatNetworkRow(network Network) string {
+	return padCell(network.Name, nameWidth) + "  " +
+		padCell(network.RPC, rpcWidth) + "  " +
+		padCell(chainIDString(network.ChainID), chainIDWidth)
+}
+
+func padCell(value string, width int) string {
+	value = components.Truncate(value, width)
+	padding := width - lipgloss.Width(value)
+	if padding < 0 {
+		padding = 0
+	}
+	return value + strings.Repeat(" ", padding)
+}
+
+func chainIDString(chainID int64) string {
+	return strconv.FormatInt(chainID, 10)
 }

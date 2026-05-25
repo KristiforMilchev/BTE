@@ -1,30 +1,18 @@
 package networksPopup
 
 import (
-	"bos/components"
-	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
+	"bos/components/search"
+
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	dialogStyle = lipgloss.NewStyle().
-			Width(52).
-			Padding(1, 2).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(components.BorderOverlayer)
+type focusArea int
 
-	inputBoxStyle = lipgloss.NewStyle().
-			Width(46).
-			Padding(0, 1).
-			MarginBottom(1).
-			BorderForeground(components.Text)
-
-	helpStyle = lipgloss.NewStyle().
-			Foreground(components.Muted)
+const (
+	focusSearch focusArea = iota
+	focusTable
 )
 
 type Network struct {
@@ -42,77 +30,90 @@ type CancelledMsg struct{}
 
 type Model struct {
 	Visible bool
-	inputs  []textinput.Model
-	focus   int
+
+	search *search.Model
+	focus  focusArea
+
+	networks []Network
+	filtered []Network
+	selected int
+	offset   int
 }
 
 func (m *Model) Init() tea.Cmd {
-	return textinput.Blink
+	if m.search == nil {
+		return nil
+	}
+	return m.search.Init()
 }
 
 func New() *Model {
-	labels := []string{"Name", "RPC", "Symbol", "Chain Id"}
-	inputs := make([]textinput.Model, len(labels))
-
-	for i, label := range labels {
-		t := textinput.New()
-		t.Placeholder = label
-		t.CharLimit = 256
-		t.Width = 42
-
-		if i == 0 {
-			t.Focus()
-		}
-
-		inputs[i] = t
-	}
-
+	networks := defaultNetworks()
 	return &Model{
-		Visible: false,
-		inputs:  inputs,
-		focus:   0,
+		Visible:  false,
+		search:   search.New("Search networks", 64),
+		focus:    focusSearch,
+		networks: networks,
+		filtered: networks,
 	}
 }
 
-func (m *Model) next() {
-	if len(m.inputs) == 0 {
-		return
-	}
-
-	m.inputs[m.focus].Blur()
-	m.focus = (m.focus + 1) % len(m.inputs)
-	m.inputs[m.focus].Focus()
+func (m *Model) focusSearch() {
+	m.focus = focusSearch
+	m.search.Focus()
 }
 
-func (m *Model) prev() {
-	if len(m.inputs) == 0 {
-		return
+func (m *Model) focusTable() {
+	m.focus = focusTable
+	m.search.Blur()
+}
+
+func (m *Model) applySearch(query string) {
+	m.filterNetworks(query)
+	m.focusTable()
+}
+
+func (m *Model) filterNetworks(query string) {
+	query = strings.ToLower(strings.TrimSpace(query))
+	if query == "" {
+		m.filtered = m.networks
+	} else {
+		filtered := make([]Network, 0, len(m.networks))
+		for _, network := range m.networks {
+			if strings.Contains(strings.ToLower(network.Name), query) ||
+				strings.Contains(strings.ToLower(network.RPC), query) ||
+				strings.Contains(strings.ToLower(network.Symbol), query) ||
+				strings.Contains(strings.ToLower(chainIDString(network.ChainID)), query) {
+				filtered = append(filtered, network)
+			}
+		}
+		m.filtered = filtered
 	}
 
-	m.inputs[m.focus].Blur()
-	m.focus--
-
-	if m.focus < 0 {
-		m.focus = len(m.inputs) - 1
-	}
-
-	m.inputs[m.focus].Focus()
+	m.selected = 0
+	m.offset = 0
 }
 
 func (m *Model) submit() tea.Cmd {
 	return func() tea.Msg {
-		chainID, err := strconv.ParseInt(strings.TrimSpace(m.inputs[3].Value()), 10, 64)
-		if err != nil {
-			chainID = 0
+		if len(m.filtered) == 0 {
+			return nil
 		}
+		return SubmittedMsg{Network: m.filtered[m.selected]}
+	}
+}
 
-		return SubmittedMsg{
-			Network: Network{
-				Name:    strings.TrimSpace(m.inputs[0].Value()),
-				RPC:     strings.TrimSpace(m.inputs[1].Value()),
-				Symbol:  strings.TrimSpace(m.inputs[2].Value()),
-				ChainID: chainID,
-			},
-		}
+func defaultNetworks() []Network {
+	return []Network{
+		{Name: "Blockcert", RPC: "https://rpc.blockcert.net", Symbol: "ETH", ChainID: 707},
+		{Name: "Ethereum", RPC: "https://eth.llamarpc.com", Symbol: "ETH", ChainID: 1},
+		{Name: "Sepolia", RPC: "https://ethereum-sepolia-rpc.publicnode.com", Symbol: "ETH", ChainID: 11155111},
+		{Name: "Polygon", RPC: "https://polygon-rpc.com", Symbol: "POL", ChainID: 137},
+		{Name: "Arbitrum One", RPC: "https://arb1.arbitrum.io/rpc", Symbol: "ETH", ChainID: 42161},
+		{Name: "Optimism", RPC: "https://mainnet.optimism.io", Symbol: "ETH", ChainID: 10},
+		{Name: "Base", RPC: "https://mainnet.base.org", Symbol: "ETH", ChainID: 8453},
+		{Name: "BSC", RPC: "https://bsc-dataseed.binance.org", Symbol: "BNB", ChainID: 56},
+		{Name: "Avalanche", RPC: "https://api.avax.network/ext/bc/C/rpc", Symbol: "AVAX", ChainID: 43114},
+		{Name: "Localhost", RPC: "http://127.0.0.1:8545", Symbol: "ETH", ChainID: 31337},
 	}
 }
