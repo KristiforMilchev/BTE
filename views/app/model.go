@@ -7,12 +7,14 @@ import (
 	"bos/types"
 	"bos/utils"
 	"bos/views/confirm"
+	"bos/views/contractinteraction"
 	"bos/views/dashboard"
 	"bos/views/errorview"
 	"bos/views/loading"
 	"bos/views/networksetup"
 	"bos/views/sending"
 	"bos/views/sent"
+	"bos/views/simulationreport"
 
 	tea "github.com/charmbracelet/bubbletea"
 	overlay "github.com/rmhubbert/bubbletea-overlay"
@@ -170,6 +172,22 @@ func (m *Model) navigate(msg types.NavigateMsg) tea.Cmd {
 	case enums.ScreenSent:
 		payload, _ := msg.Payload.(types.SentPayload)
 		m.modal = sent.New(payload)
+		return resizeCmd(m.width, m.height)
+
+	case enums.ScreenSimulationReport:
+		m.modal = nil
+		payload, ok := msg.Payload.(types.SimulationReportPayload)
+		if !ok {
+			m.current = errorview.New(types.ErrorPayload{Title: "Invalid View Payload", Message: "missing simulation report", Return: enums.ScreenDashboard})
+			return resizeCmd(m.width, m.height)
+		}
+		m.current = simulationreport.New(payload)
+		return tea.Batch(resizeCmd(m.width, m.height), m.current.Init())
+
+	case enums.ScreenContractInteraction:
+		m.modal = nil
+		payload, _ := msg.Payload.(types.ContractInteractionPayload)
+		m.current = contractinteraction.New(payload)
 		return resizeCmd(m.width, m.height)
 
 	case enums.ScreenError:

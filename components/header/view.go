@@ -16,9 +16,8 @@ func RenderHeader(width int, focus enums.FocusArea) string {
 	sideGap := 2
 	minBadgeGap := 1
 	contentWidth := components.Max(1, width-sideGap-sideGap)
-	currentNetwork := di.GetNetwork().Network()
 
-	left := networkStatus.Render(strings.TrimSpace(*currentNetwork.Rpc) != "")
+	left := networkStatus.Render(hasNetworkRPC())
 	right := components.MutedText.Render(activeHelp(focus))
 
 	headerHeight := lipgloss.Height(left)
@@ -52,4 +51,16 @@ func RenderHeader(width int, focus enums.FocusArea) string {
 	)
 
 	return line + "\n" + components.Separator(width)
+}
+
+func hasNetworkRPC() bool {
+	networkProvider := di.GetNetwork()
+	if networkProvider == nil {
+		return false
+	}
+	currentNetwork := networkProvider.Network()
+	if currentNetwork.Rpc == nil {
+		return false
+	}
+	return strings.TrimSpace(*currentNetwork.Rpc) != ""
 }

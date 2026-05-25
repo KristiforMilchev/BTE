@@ -10,10 +10,15 @@ type Model struct {
 }
 
 func New() *Model {
+	wallet := di.GetWallet()
+	if wallet == nil {
+		return &Model{}
+	}
 
-	address, err := di.GetWallet().Account()
-	if err != nil {
+	address, err := wallet.Account()
+	if err != nil || address == nil {
 		log.Printf("Can't connect to wallet to retrive wallet label")
+		return &Model{}
 	}
 
 	return &Model{

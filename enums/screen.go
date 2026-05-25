@@ -8,5 +8,7 @@ const (
 	ScreenConfirm
 	ScreenSending
 	ScreenSent
+	ScreenSimulationReport
+	ScreenContractInteraction
 	ScreenError
 )

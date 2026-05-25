@@ -13,6 +13,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
+	coretypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -30,6 +31,10 @@ func (mockWallet) Open() (*accounts.Wallet, *accounts.Account, error) {
 func (mockWallet) SendTransaction(_ string, _ *string, _ *uint64) (*string, error) {
 	hash := "0xtx"
 	return &hash, nil
+}
+
+func (mockWallet) SignTransaction(_ context.Context, tx *coretypes.Transaction, _ *big.Int) (*coretypes.Transaction, error) {
+	return tx, nil
 }
 
 type mockNetwork struct{}

@@ -19,10 +19,9 @@ func RenderFooter(
 	contentWidth := components.Max(1, width-sideGap-sideGap)
 
 	status := "Ledger Connected • "
-	network := di.GetNetwork().Network()
 
-	if *network.Rpc != "" {
-		status += "Network • " + *network.Name + " • " + "RPC Online • " + *network.Rpc
+	if networkStatus := activeNetworkStatus(); networkStatus != "" {
+		status += networkStatus
 	}
 
 	if strings.TrimSpace(statusMessage) != "" {
@@ -44,4 +43,21 @@ func RenderFooter(
 	row := strings.Repeat(" ", sideGap) + left + spacer + right + strings.Repeat(" ", sideGap)
 
 	return components.Separator(width) + "\n" + row
+}
+
+func activeNetworkStatus() string {
+	networkProvider := di.GetNetwork()
+	if networkProvider == nil {
+		return ""
+	}
+	network := networkProvider.Network()
+	if network.Rpc == nil || strings.TrimSpace(*network.Rpc) == "" {
+		return ""
+	}
+
+	name := ""
+	if network.Name != nil {
+		name = *network.Name
+	}
+	return "Network • " + name + " • RPC Online • " + *network.Rpc
 }

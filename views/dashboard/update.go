@@ -109,9 +109,13 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// m.statusMessage = "Recipient picker active"
 		return m, nil
 	case "s":
-		m.focus = enums.FocusSimulate
+		return m.beginSimulation()
 	case "S":
 		return m.beginSend()
+	case "c", "C":
+		return m, func() tea.Msg {
+			return types.NavigateMsg{Screen: enums.ScreenContractInteraction}
+		}
 	case "N":
 		m.networkDialog = networkDialog.New()
 		m.networkDialog.Visible = true

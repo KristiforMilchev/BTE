@@ -8,12 +8,10 @@ import (
 	tokenlist "bos/components/token_list"
 	transactionPreview "bos/components/transaction_preview"
 	transactionsComponent "bos/components/transactions"
-	"bos/di"
 	"bos/enums"
 	"bos/interfaces"
 	"bos/types"
 	"bos/utils"
-	"log"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -29,7 +27,8 @@ type Config struct {
 }
 
 type Model struct {
-	wallet interfaces.IWallet
+	wallet  interfaces.IWallet
+	address string
 
 	width  int
 	height int
@@ -52,6 +51,7 @@ func New(config Config) *Model {
 
 	return &Model{
 		wallet:        config.Wallet,
+		address:       config.Address,
 		focus:         enums.FocusSend,
 		contacts:      contacts.NewContacts(),
 		amount:        amount.New(),
@@ -112,38 +112,63 @@ func sampleTransactions() []types.Transaction {
 }
 
 func (m *Model) beginSend() (tea.Model, tea.Cmd) {
+	draft, ok := m.buildDraft()
+	if !ok {
+		return m, nil
+	}
+
+	return m, func() tea.Msg { return types.NavigateMsg{Screen: enums.ScreenConfirm, Payload: draft} }
+}
+
+func (m *Model) beginSimulation() (tea.Model, tea.Cmd) {
+	draft, ok := m.buildDraft()
+	if !ok {
+		return m, nil
+	}
+
+	m.statusMessage = "Simulation started"
+	return m, func() tea.Msg {
+		return types.NavigateMsg{
+			Screen: enums.ScreenSimulationReport,
+			Payload: types.SimulationReportPayload{
+				Draft:  &draft,
+				Return: "dashboard",
+			},
+		}
+	}
+}
+
+func (m *Model) buildDraft() (types.TxDraft, bool) {
 	amount := strings.TrimSpace(m.amount.Value())
 	if amount == "" {
 		m.statusMessage = "Enter an amount before sending"
 		m.focus = enums.FocusAmount
-		return m, nil
+		return types.TxDraft{}, false
 	}
 
 	if _, err := utils.ParseEtherToWei(amount); err != nil {
 		m.statusMessage = "Invalid amount: " + err.Error()
 		m.focus = enums.FocusAmount
-		return m, nil
+		return types.TxDraft{}, false
 	}
 	if !m.tokenList.SelectedAsset().Native {
 		m.statusMessage = "Token transfer signing is not integrated yet"
-		return m, nil
+		return types.TxDraft{}, false
 	}
 	if !common.IsHexAddress(m.contacts.SelectedRecipient().Address) {
 		m.statusMessage = "Selected contact has an invalid address"
 		m.focus = enums.FocusContacts
-		return m, nil
+		return types.TxDraft{}, false
 	}
 
-	account, err := di.GetWallet().Account()
-	if err != nil {
-		log.Printf("Can't start transaction account is nil -> %s", err)
-		return m, nil
+	if !common.IsHexAddress(m.address) {
+		m.statusMessage = "Wallet address is not available"
+		return types.TxDraft{}, false
 	}
 
-	draft := types.TxDraft{
-		FromAddress: account.Hex(), RecipientName: m.contacts.SelectedRecipient().Name, RecipientAddress: m.contacts.SelectedRecipient().Address,
+	return types.TxDraft{
+		FromAddress: m.address, RecipientName: m.contacts.SelectedRecipient().Name, RecipientAddress: m.contacts.SelectedRecipient().Address,
 		Amount: amount, Asset: m.tokenList.SelectedAsset(), EstimatedFee: m.transaction.EstimatedFee(),
 		SimulationStatus: m.transaction.SimulationStatus(), RiskLevel: m.transaction.RiskLevel(),
-	}
-	return m, func() tea.Msg { return types.NavigateMsg{Screen: enums.ScreenConfirm, Payload: draft} }
+	}, true
 }
