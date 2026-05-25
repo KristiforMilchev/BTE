@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"bos/components"
-	"bos/constants"
 	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
@@ -17,7 +16,6 @@ func (m *Model) View() string {
 		m.height,
 		m.focus,
 		m.statusMessage,
-		constants.RpcURL,
 		func(width, height int) string {
 			return m.renderDashboard(width, height)
 		},

@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"time"
 
@@ -35,16 +34,10 @@ func (n *Network) Networks() (*[]types.Network, error) {
 	return n.networkRepository.Networks()
 }
 
-func (n *Network) Change(rpc *string) error {
-	network, err := n.networkRepository.NetworkByRpc(rpc)
-	if err != nil {
-		log.Println("Can't change RPC - doesn't exist aborting")
-		return err
-	}
-
+func (n *Network) Change(network *types.Network) {
 	n.network = *network
-	return nil
 }
+
 func (n *Network) Active() (*ethclient.Client, *big.Int, context.Context, context.CancelFunc, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 
@@ -96,8 +89,8 @@ func (n *Network) Balance(address common.Address) (*types.NetworkBalanace, error
 	}, nil
 }
 
-func (n *Network) Name() *string {
-	return n.network.Name
+func (n *Network) Network() types.Network {
+	return n.network
 }
 
 func NewNetworkProvider(networkRepository repositories.NetworkRepository) *Network {

@@ -6,7 +6,6 @@ import (
 	"bos/components/header"
 	"bos/enums"
 	"bos/utils"
-	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -16,7 +15,6 @@ func RenderApp(
 	height int,
 	focus enums.FocusArea,
 	statusMessage string,
-	rpcURL string,
 	renderContent func(width int, height int) string,
 ) string {
 	width = utils.SafeWidth(width)
@@ -24,8 +22,9 @@ func RenderApp(
 		height = 30
 	}
 	wallet := activeWalletLabel.New()
-	headerView := header.RenderHeader(width, focus, strings.TrimSpace(rpcURL) != "")
-	footerView := footer.RenderFooter(width, statusMessage, rpcURL, wallet.View())
+
+	headerView := header.RenderHeader(width, focus)
+	footerView := footer.RenderFooter(width, statusMessage, wallet.View())
 
 	bodyHeight := height -
 		lipgloss.Height(headerView) -

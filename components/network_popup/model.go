@@ -97,6 +97,7 @@ func (m *Model) submit() tea.Cmd {
 		}
 
 		selected := (*m.filtered)[m.selected]
+		di.GetNetwork().Change(&selected)
 		return SubmittedMsg{Network: selected}
 	}
 }

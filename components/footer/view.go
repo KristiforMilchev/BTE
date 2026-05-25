@@ -12,7 +12,6 @@ import (
 func RenderFooter(
 	width int,
 	statusMessage string,
-	rpcURL string,
 	address string,
 ) string {
 	width = utils.SafeWidth(width)
@@ -20,9 +19,10 @@ func RenderFooter(
 	contentWidth := components.Max(1, width-sideGap-sideGap)
 
 	status := "Ledger Connected • "
-	networkName := di.GetNetwork().Name()
-	if rpcURL != "" {
-		status += "Network • " + *networkName + " • " + "RPC Online • " + rpcURL
+	network := di.GetNetwork().Network()
+
+	if *network.Rpc != "" {
+		status += "Network • " + *network.Name + " • " + "RPC Online • " + *network.Rpc
 	}
 
 	if strings.TrimSpace(statusMessage) != "" {

@@ -3,8 +3,10 @@ package dashboard
 import (
 	networkDialog "bos/components/network_dialog"
 	networksPopup "bos/components/network_popup"
+	"bos/di"
 	"bos/enums"
 	"bos/types"
+	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -26,6 +28,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case networksPopup.SubmittedMsg:
 		m.networkPopup.Visible = false
+		log.Printf("Network selected")
+		log.Printf("di.GetNetwork().Network().Name: %v\n", *di.GetNetwork().Network().Name)
 		return m, nil
 	case networksPopup.CancelledMsg:
 		m.networkPopup.Visible = false

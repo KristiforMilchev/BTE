@@ -3,19 +3,22 @@ package header
 import (
 	"bos/components"
 	networkStatus "bos/components/network_status"
+	"bos/di"
 	"bos/enums"
 	"bos/utils"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
 
-func RenderHeader(width int, focus enums.FocusArea, networkOnline bool) string {
+func RenderHeader(width int, focus enums.FocusArea) string {
 	width = utils.SafeWidth(width)
 	sideGap := 2
 	minBadgeGap := 1
 	contentWidth := components.Max(1, width-sideGap-sideGap)
+	currentNetwork := di.GetNetwork().Network()
 
-	left := networkStatus.Render(networkOnline)
+	left := networkStatus.Render(strings.TrimSpace(*currentNetwork.Rpc) != "")
 	right := components.MutedText.Render(activeHelp(focus))
 
 	headerHeight := lipgloss.Height(left)
