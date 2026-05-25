@@ -83,9 +83,6 @@ func KeyValue(key string, value string, width int) string {
 }
 
 func FocusMarker(active bool) string {
-	if active {
-		return lipgloss.NewStyle().Foreground(Accent).Bold(true).Render("> ")
-	}
 	return "  "
 }
 

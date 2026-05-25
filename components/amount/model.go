@@ -28,6 +28,10 @@ func (m *Model) Value() string {
 	return m.amountInput.Value()
 }
 
+func (m *Model) Clear() {
+	m.amountInput.SetValue("")
+}
+
 func New() *Model {
 
 	amount := textinput.New()

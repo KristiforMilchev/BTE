@@ -70,6 +70,12 @@ func (m *Model) onNetworkChanged() {
 
 }
 
+func (m *Model) OnTransactionSent() {
+	m.amount.Clear()
+	m.statusMessage = "Transaction sent"
+	m.focus = enums.FocusSend
+}
+
 func sampleTransactions() []types.Transaction {
 	return []types.Transaction{
 		{

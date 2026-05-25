@@ -1,7 +1,6 @@
 package implementations
 
 import (
-	"bos/constants"
 	"bos/repositories"
 	"bos/types"
 	"bos/utils"
@@ -43,19 +42,19 @@ func (n *Network) Active() (*ethclient.Client, *big.Int, context.Context, contex
 	client, err := ethclient.DialContext(ctx, *n.network.Rpc)
 	if err != nil {
 		cancel()
-		return nil, nil, nil, nil, fmt.Errorf("failed to connect to RPC %q: %w", constants.RpcURL, err)
+		return nil, nil, nil, nil, fmt.Errorf("failed to connect to RPC %q: %w", *n.network.Rpc, err)
 	}
 
 	if client == nil {
 		cancel()
-		return nil, nil, nil, nil, fmt.Errorf("failed to connect to RPC %q: ethclient returned nil client", constants.RpcURL)
+		return nil, nil, nil, nil, fmt.Errorf("failed to connect to RPC %q: ethclient returned nil client", *n.network.Rpc)
 	}
 
 	chainID, err := client.ChainID(ctx)
 	if err != nil {
 		client.Close()
 		cancel()
-		return nil, nil, nil, nil, fmt.Errorf("failed to read chain ID from RPC %q: %w", constants.RpcURL, err)
+		return nil, nil, nil, nil, fmt.Errorf("failed to read chain ID from RPC %q: %w", *n.network.Rpc, err)
 	}
 
 	return client, chainID, ctx, cancel, nil
@@ -88,16 +87,16 @@ func (n *Network) Network() types.Network {
 }
 
 func NewNetworkProvider(networkRepository repositories.NetworkRepository) *Network {
-	rpc := constants.RpcURL
-	symbol := "BGC"
-	name := "Blockcert"
-	return &Network{
-		network: types.Network{
-			Name:   &name,
-			Symbol: &symbol,
-			Rpc:    &rpc,
-			Chain:  big.NewInt(31337),
-		},
-		networkRepository: networkRepository,
+	provider := &Network{networkRepository: networkRepository}
+
+	networks, err := networkRepository.Networks()
+	if err != nil {
+		log.Printf("Failed to load saved networks on startup -> %s", err)
+		return provider
 	}
+	if networks != nil && len(*networks) > 0 {
+		provider.network = (*networks)[0]
+	}
+
+	return provider
 }

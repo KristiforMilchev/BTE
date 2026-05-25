@@ -38,6 +38,23 @@ func TestAmountUpdateEnterReturnsModelMessage(t *testing.T) {
 	}
 }
 
+func TestAmountClearResetsValue(t *testing.T) {
+	model := amount.New()
+	model.Focus()
+
+	for _, input := range []string{"1", ".", "2"} {
+		if msg, _ := model.Update(key(input)); msg != nil {
+			t.Fatalf("Update(%q) returned message %T, want nil", input, msg)
+		}
+	}
+
+	model.Clear()
+
+	if got := model.Value(); got != "" {
+		t.Fatalf("Value() after Clear() = %q, want empty", got)
+	}
+}
+
 func TestAmountViewDoesNotRenderTrailingBlankLine(t *testing.T) {
 	model := amount.New()
 	model.SetSymbol(types.Token{Symbol: "ETH"})

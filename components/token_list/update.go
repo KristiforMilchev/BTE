@@ -46,7 +46,6 @@ func (m *Model) moveSelection(delta int) {
 	if m.selectedToken >= len(m.tokens) {
 		m.selectedToken = 0
 	}
-
 }
 
 func (m Model) SelectedAsset() types.Token {

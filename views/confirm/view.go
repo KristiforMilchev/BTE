@@ -4,8 +4,6 @@ import (
 	"strings"
 
 	"bos/components"
-	"bos/enums"
-	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -30,8 +28,7 @@ func (m *Model) View() string {
 		components.Button("y  Sign on Ledger", true) + " " + components.Button("n  Cancel", false),
 	}, "\n")
 
-	body := lipgloss.NewStyle().Padding(2, 4).Render(components.Panel(66, content))
-	return views.RenderApp(m.width, m.height, enums.FocusSend, "Confirm transaction", func(width, height int) string { return body })
+	return lipgloss.NewStyle().Padding(1, 2).Render(components.Panel(66, content))
 }
 
 func riskLabel(risk string) string {

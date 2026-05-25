@@ -100,6 +100,7 @@ func (m *Model) renderTransferPanelContent(width int, height int) string {
 
 func (m *Model) renderTokensPanel(width int, height int) string {
 	bodyWidth := PanelBodyWidth(width)
+	listHeight := components.Max(1, PanelBodyHeight(height)-2)
 
 	body := strings.Join([]string{
 		components.SectionTitle.
@@ -108,7 +109,7 @@ func (m *Model) renderTokensPanel(width int, height int) string {
 			AlignHorizontal(lipgloss.Center).
 			Render("Assets"),
 		"",
-		m.tokenList.ViewWidth(bodyWidth),
+		m.tokenList.ViewWidthHeight(bodyWidth, listHeight),
 	}, "\n")
 
 	return PanelContentSized(width, height, body)

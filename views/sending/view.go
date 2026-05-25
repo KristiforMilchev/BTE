@@ -4,8 +4,6 @@ import (
 	"strings"
 
 	"bos/components"
-	"bos/enums"
-	"bos/views"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -19,8 +17,5 @@ func (m *Model) View() string {
 		components.MutedText.Render("Do not disconnect the Ledger."),
 	}, "\n")
 
-	body := lipgloss.NewStyle().Padding(2, 4).Render(components.Panel(56, content))
-	return views.RenderApp(m.width, m.height, enums.FocusSend, "Waiting for Ledger approval", func(width, height int) string {
-		return body
-	})
+	return lipgloss.NewStyle().Padding(1, 2).Render(components.Panel(56, content))
 }

@@ -11,6 +11,7 @@ import (
 type Model struct {
 	tokens        []types.Token
 	selectedToken int
+	offset        int
 }
 
 func (m *Model) Init() tea.Cmd {
@@ -40,4 +41,19 @@ func New() *Model {
 	m.tokens = tokens
 	log.Println("Updating network balance")
 	return m
+}
+
+func (m *Model) SetTokens(tokens []types.Token) {
+	m.tokens = tokens
+	if len(m.tokens) == 0 {
+		m.selectedToken = 0
+		m.offset = 0
+		return
+	}
+	if m.selectedToken >= len(m.tokens) {
+		m.selectedToken = len(m.tokens) - 1
+	}
+	if m.selectedToken < 0 {
+		m.selectedToken = 0
+	}
 }
