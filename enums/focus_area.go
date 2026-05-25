@@ -6,6 +6,7 @@ const (
 	FocusAmount FocusArea = iota
 	FocusContacts
 	FocusTokens
+	FocusTransactions
 	FocusSimulate
 	FocusSend
 )

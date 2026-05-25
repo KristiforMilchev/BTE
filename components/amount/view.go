@@ -21,7 +21,7 @@ func (m *Model) View() string {
 
 	fig := figure.NewFigure(amount, "big", true)
 
-	amountLine := amountStyle.Render(fig.String())
+	amountLine := amountStyle.Render(strings.TrimRight(fig.String(), "\n"))
 	symbolLine := components.SectionTitle.Render(m.token.Symbol)
 
 	width := max(lipgloss.Width(amountLine), lipgloss.Width(symbolLine))

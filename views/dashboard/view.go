@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"bos/components"
-	recipientPanel "bos/components/recipient_panel"
 	"bos/constants"
 	"bos/views"
 
@@ -53,25 +52,32 @@ func (m *Model) renderDashboard(width int, height int) string {
 	outerGap := 2
 	centerGap := 2
 
-	availableWidth := width - outerGap - outerGap - centerGap
-	if availableWidth < 40 {
-		availableWidth = 40
+	availableWidth := width - outerGap - outerGap - centerGap - centerGap
+	if availableWidth < 60 {
+		availableWidth = 60
 	}
 
-	leftWidth := availableWidth / 2
-	rightWidth := availableWidth - leftWidth
+	leftWidth := availableWidth / 3
+	centerWidth := availableWidth / 3
+	rightWidth := availableWidth - leftWidth - centerWidth
 
-	transferPanel := m.renderTransferPanelContent(leftWidth, height)
-	assetsPanel := m.renderTokensPanel(rightWidth, height)
+	assetsPanel := m.renderTokensPanel(leftWidth, height)
+	transferPanel := m.renderTransferPanelContent(centerWidth, height)
+	transactionsPanel := m.renderTransactionsPanel(rightWidth, height)
 
-	return strings.Repeat(" ", outerGap) +
-		lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			transferPanel,
-			strings.Repeat(" ", centerGap),
-			assetsPanel,
-		) +
-		strings.Repeat(" ", outerGap)
+	dashboard := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		assetsPanel,
+		strings.Repeat(" ", centerGap),
+		transferPanel,
+		strings.Repeat(" ", centerGap),
+		transactionsPanel,
+	)
+
+	return lipgloss.NewStyle().
+		PaddingLeft(outerGap).
+		PaddingRight(outerGap).
+		Render(dashboard)
 }
 
 func (m *Model) renderTransferPanelContent(width int, height int) string {
@@ -80,12 +86,8 @@ func (m *Model) renderTransferPanelContent(width int, height int) string {
 	asset := m.tokenList.SelectedAsset()
 	m.amount.SetSymbol(asset)
 
-	recipient := m.contacts.SelectedRecipient()
-
 	body := strings.Join([]string{
 		lipgloss.PlaceHorizontal(bodyWidth, lipgloss.Center, m.amount.View()),
-		"",
-		recipientPanel.Render(recipient, bodyWidth),
 		"",
 		m.transaction.View(),
 		"",
@@ -114,18 +116,43 @@ func (m *Model) renderTokensPanel(width int, height int) string {
 	return PanelContentSized(width, height, body)
 }
 
+func (m *Model) renderTransactionsPanel(width int, height int) string {
+	bodyWidth := PanelBodyWidth(width)
+	listHeight := components.Max(1, PanelBodyHeight(height)-2)
+
+	body := strings.Join([]string{
+		components.SectionTitle.
+			Width(bodyWidth).
+			MaxWidth(bodyWidth).
+			AlignHorizontal(lipgloss.Center).
+			Render("Transactions"),
+		"",
+		m.transactions.ViewWidthHeight(bodyWidth, listHeight),
+	}, "\n")
+
+	return PanelContentSized(width, height, body)
+}
+
 func PanelContentSized(width int, height int, body string) string {
 	width = components.Max(8, width)
 
-	style := components.PanelStyle.Width(width)
+	style := components.PanelStyle.Width(
+		components.Max(1, width-components.PanelStyle.GetHorizontalBorderSize()),
+	)
 
 	if height > 0 {
-		style = style.Height(components.Max(1, height-components.PanelStyle.GetVerticalFrameSize()))
+		style = style.Height(
+			components.Max(1, height-components.PanelStyle.GetVerticalBorderSize()),
+		)
 	}
 
 	return style.Render(body)
 }
 
 func PanelBodyWidth(width int) int {
-	return components.Max(1, width-components.PanelStyle.GetHorizontalPadding())
+	return components.Max(1, width-components.PanelStyle.GetHorizontalFrameSize())
+}
+
+func PanelBodyHeight(height int) int {
+	return components.Max(1, height-components.PanelStyle.GetVerticalFrameSize())
 }

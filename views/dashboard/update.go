@@ -50,7 +50,23 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.focus == enums.FocusTokens {
+		if msg.String() == "l" || msg.String() == "right" {
+			m.focus = enums.FocusTransactions
+			return m, nil
+		}
 		msg, _ := m.tokenList.Update(msg)
+		if msg != nil {
+			m.focus = enums.FocusSend
+		}
+		return m, nil
+	}
+
+	if m.focus == enums.FocusTransactions {
+		if msg.String() == "h" || msg.String() == "left" {
+			m.focus = enums.FocusTokens
+			return m, nil
+		}
+		msg, _ := m.transactions.Update(msg)
 		if msg != nil {
 			m.focus = enums.FocusSend
 		}
@@ -97,6 +113,15 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "t", "T":
 		m.focus = enums.FocusTokens
+		return m, nil
+	case "x", "X":
+		m.focus = enums.FocusTransactions
+		return m, nil
+	case "h", "left":
+		m.focus = enums.FocusTokens
+		return m, nil
+	case "l", "right":
+		m.focus = enums.FocusTransactions
 		return m, nil
 
 	}
