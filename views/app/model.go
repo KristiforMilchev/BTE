@@ -101,6 +101,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, resizeCmd(m.width, m.height)
 		}
 
+		if err := m.register.Transactions.SaveNativeTransfer(msg.Draft, msg.TxHash, m.network.Network()); err != nil {
+			m.modal = nil
+			m.current = errorview.New(types.ErrorPayload{
+				Title:   "Transaction Save Failed",
+				Message: "Transaction was sent, but could not be saved locally: " + utils.ErrorMessage(err),
+				Return:  enums.ScreenDashboard,
+			})
+			return m, resizeCmd(m.width, m.height)
+		}
+
 		if m.dashboard != nil {
 			m.dashboard.OnTransactionSent()
 		}

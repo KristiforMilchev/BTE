@@ -49,18 +49,20 @@ type Model struct {
 
 func New(config Config) *Model {
 
-	return &Model{
+	model := &Model{
 		wallet:        config.Wallet,
 		address:       config.Address,
 		focus:         enums.FocusSend,
 		contacts:      contacts.NewContacts(),
 		amount:        amount.New(),
 		tokenList:     tokenlist.New(),
-		transactions:  transactionsComponent.New(sampleTransactions()),
+		transactions:  transactionsComponent.New(),
 		transaction:   transactionPreview.New(6),
 		networkDialog: networkDialog.New(),
 		networkPopup:  networksPopup.New(),
 	}
+	model.transactions.Load()
+	return model
 }
 
 func (m *Model) Init() tea.Cmd { return nil }
@@ -72,43 +74,9 @@ func (m *Model) onNetworkChanged() {
 
 func (m *Model) OnTransactionSent() {
 	m.amount.Clear()
+	m.transactions.Load()
 	m.statusMessage = "Transaction sent"
 	m.focus = enums.FocusSend
-}
-
-func sampleTransactions() []types.Transaction {
-	return []types.Transaction{
-		{
-			To:     "0x1111111111111111111111111111111111111111",
-			Block:  "19420431",
-			TxHash: "0x8f4f0af2042a7a7ff36b9a2a90131b1981a3d6907f3fb62d3b93e16ee13f6e2a",
-			Amount: "0.00126092 ETH",
-		},
-		{
-			To:     "0x2222222222222222222222222222222222222222",
-			Block:  "19420412",
-			TxHash: "0x73ceac921ea905abbfa29d45314d4dcb5f9d0d858df580d20d7608a55dbf8f21",
-			Amount: "0.045 ETH",
-		},
-		{
-			To:     "0x3333333333333333333333333333333333333333",
-			Block:  "19420390",
-			TxHash: "0x4da4619adf0093b43e37cf370d6f873d48d936f3a41c6fb1bb58883f78195832",
-			Amount: "1.250 ETH",
-		},
-		{
-			To:     "0x4444444444444444444444444444444444444444",
-			Block:  "19420344",
-			TxHash: "0xd2a78a19737a4b79b8e0156f8b9e384b202ddda78ce0a07d74185970aca88c1d",
-			Amount: "0.004 ETH",
-		},
-		{
-			To:     "0x5555555555555555555555555555555555555555",
-			Block:  "19420281",
-			TxHash: "0xadd6e94a8214c3f5e3730d7d10e0cb977b7a7a72e60c4f43039a862f314923c7",
-			Amount: "0.083 ETH",
-		},
-	}
 }
 
 func (m *Model) beginSend() (tea.Model, tea.Cmd) {

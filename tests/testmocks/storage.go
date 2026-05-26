@@ -23,6 +23,29 @@ CREATE TABLE networks (
 	chain_id TEXT NOT NULL,
 	block_explorer TEXT
 );
+
+CREATE TABLE token_transactions (
+	id TEXT PRIMARY KEY,
+	tx_hash TEXT NOT NULL UNIQUE,
+	amount TEXT NOT NULL,
+	account_id TEXT NOT NULL,
+	network_id TEXT NOT NULL,
+
+	FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+	FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE
+);
+
+CREATE TABLE contact_transactions (
+	id TEXT PRIMARY KEY,
+	tx_hash TEXT NOT NULL UNIQUE,
+	token TEXT NULL,
+	amount TEXT NOT NULL,
+	account_id TEXT NOT NULL,
+	network_id TEXT NOT NULL,
+
+	FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+	FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE
+);
 `
 
 type Storage struct {

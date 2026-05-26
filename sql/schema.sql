@@ -31,8 +31,10 @@ CREATE TABLE IF NOT EXISTS token_transactions (
 	tx_hash TEXT NOT NULL UNIQUE,
 	amount TEXT NOT NULL,
 	account_id TEXT NOT NULL,
+	network_id TEXT NOT NULL,
 
-	FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+	FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+	FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS markets (
@@ -56,9 +58,11 @@ CREATE TABLE IF NOT EXISTS contact_transactions (
 	token TEXT NULL,
 	amount TEXT NOT NULL,
 	account_id TEXT NOT NULL,
+	network_id TEXT NOT NULL,
 
 	FOREIGN KEY (token) REFERENCES tokens(id) ON DELETE SET NULL,
-	FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+	FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+	FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_tokens_network
@@ -67,11 +71,17 @@ ON tokens(network);
 CREATE INDEX IF NOT EXISTS idx_token_transactions_account
 ON token_transactions(account_id);
 
+CREATE INDEX IF NOT EXISTS idx_token_transactions_network
+ON token_transactions(network_id);
+
 CREATE INDEX IF NOT EXISTS idx_markets_network
 ON markets(network);
 
 CREATE INDEX IF NOT EXISTS idx_contact_transactions_account
 ON contact_transactions(account_id);
+
+CREATE INDEX IF NOT EXISTS idx_contact_transactions_network
+ON contact_transactions(network_id);
 
 CREATE INDEX IF NOT EXISTS idx_contact_transactions_token
 ON contact_transactions(token);

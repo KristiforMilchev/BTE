@@ -45,6 +45,6 @@ func (m *Model) sendTransaction() tea.Cmd {
 		if txHash == nil {
 			return types.SendFinishedMsg{Err: fmt.Errorf("wallet returned an empty transaction hash")}
 		}
-		return types.SendFinishedMsg{TxHash: *txHash}
+		return types.SendFinishedMsg{TxHash: *txHash, Draft: m.draft}
 	}
 }
