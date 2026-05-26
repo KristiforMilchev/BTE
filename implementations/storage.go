@@ -90,6 +90,12 @@ func (s *Storage) migrate() error {
 	if err := s.ensureColumn("contact_transactions", "network_id", "TEXT"); err != nil {
 		return err
 	}
+	if err := s.ensureColumn("token_transactions", "recipient", "TEXT NOT NULL DEFAULT ''"); err != nil {
+		return err
+	}
+	if err := s.ensureColumn("contact_transactions", "recipient", "TEXT NOT NULL DEFAULT ''"); err != nil {
+		return err
+	}
 
 	_, err := s.db.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_token_transactions_network

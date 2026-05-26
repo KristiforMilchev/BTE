@@ -16,10 +16,8 @@ func (m Model) ViewWidth(width int) string {
 
 	valueWidth := components.Max(1, width-2)
 	tx := m.transaction
-
 	return strings.Join([]string{
 		valueStyle.Render("To: " + components.Truncate(tx.To, valueWidth)),
-		"  " + components.MutedText.Render("Block: "+components.Truncate(tx.Block, valueWidth)),
 		"  " + components.MutedText.Render("TxHash: "+components.Truncate(tx.TxHash, valueWidth)),
 		"  " + components.MutedText.Render("Amount: "+components.Truncate(tx.Amount, valueWidth)),
 	}, "\n")

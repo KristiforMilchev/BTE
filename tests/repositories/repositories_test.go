@@ -100,7 +100,11 @@ func TestTransactionsRepositorySaveNativeTransferStoresAccountAndNetwork(t *test
 	}
 
 	err = register.Transactions.SaveNativeTransfer(
-		types.TxDraft{FromAddress: account.Hex(), Amount: "1.25"},
+		types.TxDraft{
+			FromAddress:      account.Hex(),
+			RecipientAddress: "0x2222222222222222222222222222222222222222",
+			Amount:           "1.25",
+		},
 		"0xtx",
 		types.Network{Id: networkID, Rpc: &rpc},
 	)
@@ -109,19 +113,23 @@ func TestTransactionsRepositorySaveNativeTransferStoresAccountAndNetwork(t *test
 	}
 
 	var txHash string
+	var recipient string
 	var amount string
 	var savedAccountID string
 	var savedNetworkID string
 	err = storage.QueryRow(context.Background(), `
-		SELECT tx_hash, amount, account_id, network_id
+		SELECT tx_hash, recipient, amount, account_id, network_id
 		FROM contact_transactions
 		WHERE tx_hash = ?;
-	`, "0xtx").Scan(&txHash, &amount, &savedAccountID, &savedNetworkID)
+	`, "0xtx").Scan(&txHash, &recipient, &amount, &savedAccountID, &savedNetworkID)
 	if err != nil {
 		t.Fatalf("QueryRow() returned error: %v", err)
 	}
 	if txHash != "0xtx" || amount != "1.25" {
 		t.Fatalf("saved transaction = (%q, %q), want (0xtx, 1.25)", txHash, amount)
+	}
+	if recipient != "0x2222222222222222222222222222222222222222" {
+		t.Fatalf("recipient = %q, want 0x2222222222222222222222222222222222222222", recipient)
 	}
 	if savedNetworkID != networkID.String() {
 		t.Fatalf("network_id = %q, want %q", savedNetworkID, networkID.String())
@@ -168,9 +176,10 @@ func TestTransactionsRepositoryGetTransactionsReturnsTokenAndContactTransactions
 
 	_, err = storage.Exec(
 		context.Background(),
-		"INSERT INTO token_transactions (id, tx_hash, amount, account_id, network_id) VALUES (?, ?, ?, ?, ?)",
+		"INSERT INTO token_transactions (id, tx_hash, recipient, amount, account_id, network_id) VALUES (?, ?, ?, ?, ?, ?)",
 		uuid.NewString(),
 		"0xtoken",
+		"0x2222222222222222222222222222222222222222",
 		"5 TOKEN",
 		accountID,
 		networkID.String(),
@@ -180,9 +189,10 @@ func TestTransactionsRepositoryGetTransactionsReturnsTokenAndContactTransactions
 	}
 	_, err = storage.Exec(
 		context.Background(),
-		"INSERT INTO contact_transactions (id, tx_hash, token, amount, account_id, network_id) VALUES (?, ?, ?, ?, ?, ?)",
+		"INSERT INTO contact_transactions (id, tx_hash, recipient, token, amount, account_id, network_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		uuid.NewString(),
 		"0xcontact",
+		"0x3333333333333333333333333333333333333333",
 		nil,
 		"1 ETH",
 		accountID,
@@ -200,10 +210,10 @@ func TestTransactionsRepositoryGetTransactionsReturnsTokenAndContactTransactions
 	if len(*got) != 2 {
 		t.Fatalf("GetTransactions() returned %d transactions, want 2", len(*got))
 	}
-	if (*got)[0].TxHash != "0xtoken" || (*got)[0].Amount != "5 TOKEN" {
+	if (*got)[0].To != "0x2222222222222222222222222222222222222222" || (*got)[0].TxHash != "0xtoken" || (*got)[0].Amount != "5 TOKEN" {
 		t.Fatalf("first transaction = %+v, want token transaction", (*got)[0])
 	}
-	if (*got)[1].TxHash != "0xcontact" || (*got)[1].Amount != "1 ETH" {
+	if (*got)[1].To != "0x3333333333333333333333333333333333333333" || (*got)[1].TxHash != "0xcontact" || (*got)[1].Amount != "1 ETH" {
 		t.Fatalf("second transaction = %+v, want contact transaction", (*got)[1])
 	}
 }

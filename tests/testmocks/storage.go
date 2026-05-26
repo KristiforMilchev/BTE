@@ -27,6 +27,7 @@ CREATE TABLE networks (
 CREATE TABLE token_transactions (
 	id TEXT PRIMARY KEY,
 	tx_hash TEXT NOT NULL UNIQUE,
+	recipient TEXT NOT NULL,
 	amount TEXT NOT NULL,
 	account_id TEXT NOT NULL,
 	network_id TEXT NOT NULL,
@@ -38,6 +39,7 @@ CREATE TABLE token_transactions (
 CREATE TABLE contact_transactions (
 	id TEXT PRIMARY KEY,
 	tx_hash TEXT NOT NULL UNIQUE,
+	recipient TEXT NOT NULL,
 	token TEXT NULL,
 	amount TEXT NOT NULL,
 	account_id TEXT NOT NULL,

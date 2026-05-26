@@ -20,6 +20,9 @@ func (t *TransactionsRepository) SaveNativeTransfer(draft types.TxDraft, txHash 
 	if txHash == "" {
 		return errors.New("transaction hash is required")
 	}
+	if draft.RecipientAddress == "" {
+		return errors.New("recipient address is required")
+	}
 	if network.Id == uuid.Nil {
 		return errors.New("network id is required")
 	}
@@ -37,14 +40,15 @@ func (t *TransactionsRepository) SaveNativeTransfer(draft types.TxDraft, txHash 
 	}
 
 	_, err = tx.ExecContext(ctx, `
-		INSERT INTO contact_transactions (id, tx_hash, token, amount, account_id, network_id)
-		VALUES (?, ?, NULL, ?, ?, ?)
+		INSERT INTO contact_transactions (id, tx_hash, recipient, token, amount, account_id, network_id)
+		VALUES (?, ?, ?, NULL, ?, ?, ?)
 		ON CONFLICT(tx_hash) DO UPDATE SET
+			recipient = excluded.recipient,
 			amount = excluded.amount,
 			account_id = excluded.account_id,
 			network_id = excluded.network_id,
 			token = excluded.token;
-	`, uuid.NewString(), txHash, draft.Amount, accountID, network.Id.String())
+	`, uuid.NewString(), txHash, draft.RecipientAddress, draft.Amount, accountID, network.Id.String())
 	if err != nil {
 		return err
 	}
@@ -67,15 +71,15 @@ func (t *TransactionsRepository) GetTransactions(network *uuid.UUID, account *st
 	}
 
 	sqlQuery := `
-		SELECT tx_hash, amount
+		SELECT recipient, tx_hash, amount
 		FROM (
-			SELECT tx_hash, amount, 0 AS source_order
+			SELECT recipient, tx_hash, amount, 0 AS source_order
 			FROM token_transactions
 			WHERE network_id = ? AND account_id = ?
 
 			UNION ALL
 
-			SELECT tx_hash, amount, 1 AS source_order
+			SELECT recipient, tx_hash, amount, 1 AS source_order
 			FROM contact_transactions
 			WHERE network_id = ? AND account_id = ?
 		)
@@ -98,7 +102,7 @@ func (t *TransactionsRepository) GetTransactions(network *uuid.UUID, account *st
 	var transactions []types.Transaction
 	for query.Next() {
 		var transaction types.Transaction
-		err := query.Scan(&transaction.TxHash, &transaction.Amount)
+		err := query.Scan(&transaction.To, &transaction.TxHash, &transaction.Amount)
 		if err != nil {
 			log.Printf("Failed to map transaction data to transaction -> %s", err)
 			return nil, err

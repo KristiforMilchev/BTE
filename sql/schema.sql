@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS tokens (
 CREATE TABLE IF NOT EXISTS token_transactions (
 	id TEXT PRIMARY KEY,
 	tx_hash TEXT NOT NULL UNIQUE,
+	recipient TEXT NOT NULL,
 	amount TEXT NOT NULL,
 	account_id TEXT NOT NULL,
 	network_id TEXT NOT NULL,
@@ -55,6 +56,7 @@ CREATE TABLE IF NOT EXISTS contacts (
 CREATE TABLE IF NOT EXISTS contact_transactions (
 	id TEXT PRIMARY KEY,
 	tx_hash TEXT NOT NULL UNIQUE,
+	recipient TEXT NOT NULL,
 	token TEXT NULL,
 	amount TEXT NOT NULL,
 	account_id TEXT NOT NULL,
