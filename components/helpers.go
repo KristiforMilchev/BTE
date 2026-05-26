@@ -52,6 +52,43 @@ func Truncate(s string, width int) string {
 	return out + "…"
 }
 
+func TruncateMiddle(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	if lipgloss.Width(s) <= width {
+		return s
+	}
+	if width <= 1 {
+		return "…"
+	}
+
+	runes := []rune(s)
+	ellipsis := "…"
+	leftWidth := (width - 1) / 2
+	rightWidth := width - 1 - leftWidth
+
+	left := ""
+	for _, r := range runes {
+		next := left + string(r)
+		if lipgloss.Width(next) > leftWidth {
+			break
+		}
+		left = next
+	}
+
+	right := ""
+	for i := len(runes) - 1; i >= 0; i-- {
+		next := string(runes[i]) + right
+		if lipgloss.Width(next) > rightWidth {
+			break
+		}
+		right = next
+	}
+
+	return left + ellipsis + right
+}
+
 func ShortAddress(address string) string {
 	address = strings.TrimSpace(address)
 	if len(address) <= 16 {

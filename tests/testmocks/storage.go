@@ -24,6 +24,12 @@ CREATE TABLE networks (
 	block_explorer TEXT
 );
 
+CREATE TABLE contacts (
+	id TEXT PRIMARY KEY,
+	name TEXT NOT NULL,
+	address TEXT NOT NULL UNIQUE
+);
+
 CREATE TABLE token_transactions (
 	id TEXT PRIMARY KEY,
 	tx_hash TEXT NOT NULL UNIQUE,

@@ -43,6 +43,17 @@ func (m *Model) View() string {
 		)
 	}
 
+	if m.contactDialog.Visible {
+		return overlay.Composite(
+			m.contactDialog.View(),
+			base,
+			overlay.Center,
+			overlay.Center,
+			0,
+			0,
+		)
+	}
+
 	return base
 }
 
@@ -87,10 +98,12 @@ func (m *Model) renderTransferPanelContent(width int, height int) string {
 	body := strings.Join([]string{
 		lipgloss.PlaceHorizontal(bodyWidth, lipgloss.Center, m.amount.View()),
 		"",
-		m.transaction.View(),
-		"",
 		components.Separator(bodyWidth),
-		components.SectionTitle.Render("Contacts"),
+		components.SectionTitle.
+			Width(bodyWidth).
+			MaxWidth(bodyWidth).
+			AlignHorizontal(lipgloss.Center).
+			Render("Contacts"),
 		"",
 		m.contacts.ViewWidth(bodyWidth),
 	}, "\n")

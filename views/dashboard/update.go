@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	contactDialog "bos/components/contact_dialog"
 	networkDialog "bos/components/network_dialog"
 	networksPopup "bos/components/network_popup"
 	"bos/di"
@@ -26,6 +27,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case networkDialog.CancelledMsg:
 		m.networkDialog.Visible = false
 		return m, nil
+	case contactDialog.SubmittedMsg:
+		m.contactDialog.Visible = false
+		m.contacts.Load()
+		m.statusMessage = "Contact saved"
+		return m, nil
+	case contactDialog.CancelledMsg:
+		m.contactDialog.Visible = false
+		return m, nil
 	case networksPopup.SubmittedMsg:
 		m.networkPopup.Visible = false
 		log.Printf("Network selected")
@@ -49,6 +58,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
+	if m.contactDialog.Visible {
+		var cmd tea.Cmd
+		m.contactDialog, cmd = m.contactDialog.Update(msg)
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return m.handleKey(msg)
@@ -59,6 +74,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.focus == enums.FocusContacts {
+		if msg.String() == "a" || msg.String() == "A" {
+			m.openContactDialog()
+			return m, nil
+		}
 		msg, _ := m.contacts.Update(msg)
 		if msg != nil {
 			m.focus = enums.FocusSend
@@ -108,6 +127,9 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = enums.FocusContacts
 		// m.statusMessage = "Recipient picker active"
 		return m, nil
+	case "a", "A":
+		m.openContactDialog()
+		return m, nil
 	case "s":
 		return m.beginSimulation()
 	case "S":
@@ -130,7 +152,6 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "e", "E":
 		m.focus = enums.FocusAmount
 		m.amount.Focus()
-		m.transaction.Reset()
 		return m, nil
 	case "t", "T":
 		m.focus = enums.FocusTokens
@@ -148,4 +169,9 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m *Model) openContactDialog() {
+	m.contactDialog = contactDialog.New()
+	m.contactDialog.Visible = true
 }

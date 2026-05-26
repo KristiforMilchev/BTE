@@ -1,7 +1,6 @@
 package transactions
 
 import (
-	transactionComponent "bos/components/transaction"
 	"bos/di"
 	"bos/types"
 	"log"
@@ -10,7 +9,7 @@ import (
 )
 
 type Model struct {
-	transactions []transactionComponent.Model
+	transactions []types.Transaction
 	selected     int
 	offset       int
 }
@@ -46,10 +45,7 @@ func (m *Model) Load() {
 }
 
 func (m *Model) SetTransactions(items []types.Transaction) {
-	m.transactions = make([]transactionComponent.Model, 0, len(items))
-	for _, item := range items {
-		m.transactions = append(m.transactions, transactionComponent.New(item))
-	}
+	m.transactions = append([]types.Transaction(nil), items...)
 	if len(m.transactions) == 0 {
 		m.selected = 0
 		m.offset = 0
