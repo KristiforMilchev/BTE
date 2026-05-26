@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"testing"
+	"time"
 
 	"bos/di"
 	"bos/interfaces"
@@ -88,6 +89,12 @@ func (mockLogger) Close() error {
 	return nil
 }
 
+type mockContractInteractionReader struct{}
+
+func (mockContractInteractionReader) RecentInteractions(_ context.Context, _ common.Address, _ time.Time) ([]types.ContractInteraction, error) {
+	return []types.ContractInteraction{}, nil
+}
+
 type mockSwapRouter struct {
 	address common.Address
 }
@@ -115,14 +122,16 @@ func TestSetupDependenciesWithUsesProvidedServices(t *testing.T) {
 	storage := testmocks.NewStorage(t)
 	register := repositories.NewRegister(storage)
 	swap := mockSwapRouter{address: common.HexToAddress("0x2222222222222222222222222222222222222222")}
+	interactionReader := mockContractInteractionReader{}
 
 	di.SetupDependenciesWith(di.Dependencies{
-		Wallet:   mockWallet{},
-		Network:  mockNetwork{},
-		Logger:   mockLogger{},
-		Swaps:    []interfaces.ISwapRouter{swap},
-		Storage:  storage,
-		Register: &register,
+		Wallet:               mockWallet{},
+		Network:              mockNetwork{},
+		Logger:               mockLogger{},
+		ContractInteractions: interactionReader,
+		Swaps:                []interfaces.ISwapRouter{swap},
+		Storage:              storage,
+		Register:             &register,
 	})
 	t.Cleanup(func() {
 		di.SetupDependenciesWith(di.Dependencies{})
@@ -139,5 +148,8 @@ func TestSetupDependenciesWithUsesProvidedServices(t *testing.T) {
 	}
 	if len(di.GetSwaps()) != 1 || di.GetSwaps()[0].Address() != swap.address {
 		t.Fatalf("GetSwaps() = %+v, want provided swap", di.GetSwaps())
+	}
+	if di.GetContractInteractions() == nil {
+		t.Fatal("GetContractInteractions() = nil, want provided reader")
 	}
 }

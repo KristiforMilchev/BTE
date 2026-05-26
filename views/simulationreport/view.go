@@ -21,6 +21,7 @@ func (m *Model) View() string {
 
 	sections := []string{
 		summary(report, contentWidth),
+		functionSection(report.FunctionCalls, contentWidth),
 		balanceSection(report.BalanceChanges, contentWidth),
 		detailGrid(report, contentWidth),
 	}
@@ -85,6 +86,10 @@ func detailGrid(report types.SimulationReport, width int) string {
 
 func balanceSection(changes []types.BalanceChange, width int) string {
 	return section("Balance Changes", balanceRows(changes, width), width, false)
+}
+
+func functionSection(calls []types.SimulationFunctionCall, width int) string {
+	return section("Function Results", functionRows(calls, width), width, true)
 }
 
 func section(title string, rows []string, width int, emptyAsNone bool) string {
@@ -203,15 +208,13 @@ func approvalRows(approvals []types.TokenApproval, width int) []string {
 }
 
 func bytecodeRows(checks []types.BytecodeCheck, width int) []string {
-	rows := make([]string, 0, len(checks)*4)
+	rows := make([]string, 0, len(checks)*2)
 	for _, check := range checks {
 		kind := "wallet"
 		if check.IsContract {
 			kind = "contract"
 		}
 		rows = append(rows, components.Value.Render(components.ShortAddress(check.Address))+"  "+components.MutedText.Render(kind))
-		rows = append(rows, components.MutedText.Render("hex "+components.Truncate(check.RuntimeHex, width-4)))
-		rows = append(rows, components.MutedText.Render("bin "+components.Truncate(check.RuntimeBinary, width-4)))
 		if check.Note != "" {
 			rows = append(rows, components.MutedText.Render(components.Truncate(check.Note, width)))
 		}
@@ -244,12 +247,54 @@ func callRows(calls []types.ContractCall, width int) []string {
 func eventRows(events []types.EventLog, width int) []string {
 	rows := make([]string, 0, len(events)*2)
 	for _, event := range events {
+		if !userFacingEvent(event) {
+			continue
+		}
 		rows = append(rows, components.Value.Render(components.ShortAddress(event.Contract)+"  "+event.Name))
 		if event.Details != "" {
 			rows = append(rows, components.MutedText.Render(components.Truncate(event.Details, width)))
 		}
 	}
 	return rows
+}
+
+func functionRows(calls []types.SimulationFunctionCall, width int) []string {
+	rows := make([]string, 0, len(calls)*4)
+	for _, call := range calls {
+		name := call.Signature
+		if name == "" {
+			name = call.Function
+		}
+		rows = append(rows, components.Value.Render(components.Truncate(name+"  "+call.Status, width)))
+		if call.PassedData != "" {
+			rows = append(rows, components.MutedText.Render(components.Truncate("passed data "+call.PassedData, width)))
+		}
+		if len(call.Consequences) == 0 {
+			rows = append(rows, components.MutedText.Render("no wallet balance, approval, or event effect was observed"))
+			continue
+		}
+		for _, consequence := range call.Consequences {
+			if userFacingText(consequence) {
+				rows = append(rows, components.MutedText.Render(components.Truncate("- "+consequence, width)))
+			}
+		}
+	}
+	return rows
+}
+
+func userFacingEvent(event types.EventLog) bool {
+	return userFacingText(event.Name) && userFacingText(event.Details)
+}
+
+func userFacingText(value string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	if normalized == "" {
+		return true
+	}
+	return !strings.Contains(normalized, "debug_tracetransaction") &&
+		!strings.Contains(normalized, ".sha256=") &&
+		!strings.HasPrefix(normalized, "hex ") &&
+		!strings.HasPrefix(normalized, "bin ")
 }
 
 func warningRows(warnings []string) []string {

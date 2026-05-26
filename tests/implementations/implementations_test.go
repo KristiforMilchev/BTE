@@ -158,7 +158,7 @@ func TestSimulatorCallsBeginAndExecuteAPI(t *testing.T) {
 				t.Fatalf("begin network = %q", request.Network)
 			}
 
-			return jsonResponse(`{"simulationId":"session-1","clonedRpc":"http://sim-rpc","transaction":{"chainId":"0x539"},"contract":{"hasCode":true},"runtimeHex":"0x6001","runtimeBinary":"0b0110000000000001"}`), nil
+			return jsonResponse(`{"simulationId":"session-1","clonedRpc":"http://sim-rpc","transaction":{"type":"legacy","chainId":"0x539","from":"0x1111111111111111111111111111111111111111","to":"0x2222222222222222222222222222222222222222","value":"0x0","data":"0x","nonce":"0x7","gas":"0x5208","gasPrice":"0x3b9aca00"},"contract":{"hasCode":true},"runtimeHex":"0x6001","runtimeBinary":"0b0110000000000001"}`), nil
 
 		case "/v1/simulation/perform":
 			executeCalled = true
@@ -189,7 +189,7 @@ func TestSimulatorCallsBeginAndExecuteAPI(t *testing.T) {
 				t.Fatalf("signed tx aliases = %q %q, want 0x010203", request.SignedTransaction, request.RawTransaction)
 			}
 
-			return jsonResponse(`{"report":{"title":"API Report","status":"ok","bytecodeChecks":[{"address":"0x2222222222222222222222222222222222222222","isContract":true,"runtimeHex":"0x6001","runtimeBinary":"0b0110000000000001"}]}}`), nil
+			return jsonResponse(`{"simulationId":"session-1","network":"http://source-rpc","rawTransactionSha256":"0xabc","balances":{"callerBefore":"0x10","callerAfter":"0x09","addressBefore":"0x00","addressAfter":"0x00"},"approvalFindings":[{"type":"erc20-approval","selector":"0x095ea7b3","description":"approval selector found in signed transaction","severity":"high"}],"contract":{"address":"0x2222222222222222222222222222222222222222","hasCode":true,"codeHashSha256":"0xcode","stateChanges":["receipt.status=0x1"]},"execution":{"mode":"ganache-fork","broadcasted":false,"transactionHash":"0xtx","status":"0x1","details":"transaction executed on Ganache fork; gas used 0x5208","forkBackendNeeded":false},"warnings":["signed transaction was executed only on the Ganache fork and was not broadcast to the upstream network"]}`), nil
 
 		default:
 			t.Fatalf("unexpected path %s", r.URL.Path)
@@ -219,12 +219,21 @@ func TestSimulatorCallsBeginAndExecuteAPI(t *testing.T) {
 	if !session.AddressContract || session.RuntimeHex != "0x6001" || session.ChainID != "0x539" {
 		t.Fatalf("session bytecode fields = %+v", session)
 	}
+	if session.Transaction.To != "0x2222222222222222222222222222222222222222" || session.Transaction.Nonce != "0x7" {
+		t.Fatalf("session transaction = %+v", session.Transaction)
+	}
 
 	report, err := simulator.ExecuteSignedTransaction(*session, []byte{0x01, 0x02, 0x03})
 	if err != nil {
 		t.Fatalf("ExecuteSignedTransaction() returned error: %v", err)
 	}
-	if report.Title != "API Report" || len(report.BytecodeChecks) != 1 {
+	if report.Title != "Contract Simulation" || report.RiskLevel != "High" || len(report.BytecodeChecks) != 1 {
+		t.Fatalf("report = %+v", report)
+	}
+	if len(report.TokenApprovals) != 1 || report.TokenApprovals[0].Spender != "0x095ea7b3" {
+		t.Fatalf("token approvals = %+v", report.TokenApprovals)
+	}
+	if len(report.Events) == 0 || report.Events[0].Details != "receipt.status=0x1" {
 		t.Fatalf("report = %+v", report)
 	}
 	if !beginCalled || !executeCalled {

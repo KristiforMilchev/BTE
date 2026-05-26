@@ -7,33 +7,64 @@ type SimulationReportPayload struct {
 }
 
 type SimulationSession struct {
-	ID              string  `json:"id"`
-	RPC             string  `json:"rpc"`
-	ChainID         string  `json:"chainId,omitempty"`
-	Network         Network `json:"network"`
-	Address         string  `json:"address"`
-	Caller          string  `json:"caller"`
-	Amount          string  `json:"amount,omitempty"`
-	Asset           string  `json:"asset,omitempty"`
-	BalanceBefore   string  `json:"balanceBefore,omitempty"`
-	BalanceAfter    string  `json:"balanceAfter,omitempty"`
-	AddressContract bool    `json:"addressContract"`
-	RuntimeHex      string  `json:"runtimeHex,omitempty"`
-	RuntimeBinary   string  `json:"runtimeBinary,omitempty"`
+	ID              string              `json:"id"`
+	RPC             string              `json:"rpc"`
+	ChainID         string              `json:"chainId,omitempty"`
+	Transaction     LedgerTransaction   `json:"transaction,omitempty"`
+	Transactions    []LedgerTransaction `json:"transactions,omitempty"`
+	Network         Network             `json:"network"`
+	Address         string              `json:"address"`
+	Caller          string              `json:"caller"`
+	Amount          string              `json:"amount,omitempty"`
+	Asset           string              `json:"asset,omitempty"`
+	BalanceBefore   string              `json:"balanceBefore,omitempty"`
+	BalanceAfter    string              `json:"balanceAfter,omitempty"`
+	AddressContract bool                `json:"addressContract"`
+	RuntimeHex      string              `json:"runtimeHex,omitempty"`
+	RuntimeBinary   string              `json:"runtimeBinary,omitempty"`
+}
+
+type LedgerTransaction struct {
+	Type      string `json:"type"`
+	ChainID   string `json:"chainId"`
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Value     string `json:"value"`
+	Data      string `json:"data"`
+	Nonce     string `json:"nonce"`
+	Gas       string `json:"gas"`
+	GasPrice  string `json:"gasPrice,omitempty"`
+	Function  string `json:"function,omitempty"`
+	Signature string `json:"signature,omitempty"`
+}
+
+type SimulationFunctionCall struct {
+	Function     string   `json:"function"`
+	Signature    string   `json:"signature"`
+	PassedData   string   `json:"passedData"`
+	Status       string   `json:"status"`
+	Consequences []string `json:"consequences"`
+}
+
+type SignedSimulationTransaction struct {
+	Function          string `json:"function,omitempty"`
+	Signature         string `json:"signature,omitempty"`
+	SignedTransaction string `json:"signedTransaction"`
 }
 
 type SimulationReport struct {
-	Title          string          `json:"title"`
-	Status         string          `json:"status"`
-	RiskLevel      string          `json:"riskLevel"`
-	GasEstimate    string          `json:"gasEstimate"`
-	Summary        string          `json:"summary"`
-	BalanceChanges []BalanceChange `json:"balanceChanges"`
-	TokenApprovals []TokenApproval `json:"tokenApprovals"`
-	BytecodeChecks []BytecodeCheck `json:"bytecodeChecks"`
-	Calls          []ContractCall  `json:"calls"`
-	Events         []EventLog      `json:"events"`
-	Warnings       []string        `json:"warnings"`
+	Title          string                   `json:"title"`
+	Status         string                   `json:"status"`
+	RiskLevel      string                   `json:"riskLevel"`
+	GasEstimate    string                   `json:"gasEstimate"`
+	Summary        string                   `json:"summary"`
+	BalanceChanges []BalanceChange          `json:"balanceChanges"`
+	TokenApprovals []TokenApproval          `json:"tokenApprovals"`
+	BytecodeChecks []BytecodeCheck          `json:"bytecodeChecks"`
+	Calls          []ContractCall           `json:"calls"`
+	FunctionCalls  []SimulationFunctionCall `json:"functionCalls,omitempty"`
+	Events         []EventLog               `json:"events"`
+	Warnings       []string                 `json:"warnings"`
 }
 
 type BalanceChange struct {

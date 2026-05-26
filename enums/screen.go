@@ -10,5 +10,6 @@ const (
 	ScreenSent
 	ScreenSimulationReport
 	ScreenContractInteraction
+	ScreenImportContract
 	ScreenError
 )

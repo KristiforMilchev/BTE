@@ -27,23 +27,23 @@ type Simulator struct {
 }
 
 type beginSimulationRequest struct {
-	Network string `json:"network"`
-	Address string `json:"address"`
-	Caller  string `json:"caller"`
+	Network   string                   `json:"network"`
+	Address   string                   `json:"address"`
+	Caller    string                   `json:"caller"`
+	Functions []types.ContractFunction `json:"functions,omitempty"`
 }
 
 type beginSimulationResponse struct {
-	SimulationID string `json:"simulationId"`
-	ID           string `json:"id"`
-	SessionID    string `json:"sessionId"`
-	RPC          string `json:"rpc"`
-	ClonedRPC    string `json:"clonedRpc"`
-	ChainID      string `json:"chainId"`
-	ChainIDAlt   string `json:"chainID"`
-	Transaction  struct {
-		ChainID string `json:"chainId"`
-	} `json:"transaction"`
-	Contract struct {
+	SimulationID string                    `json:"simulationId"`
+	ID           string                    `json:"id"`
+	SessionID    string                    `json:"sessionId"`
+	RPC          string                    `json:"rpc"`
+	ClonedRPC    string                    `json:"clonedRpc"`
+	ChainID      string                    `json:"chainId"`
+	ChainIDAlt   string                    `json:"chainID"`
+	Transaction  types.LedgerTransaction   `json:"transaction"`
+	Transactions []types.LedgerTransaction `json:"transactions"`
+	Contract     struct {
 		HasCode bool   `json:"hasCode"`
 		Address string `json:"address"`
 	} `json:"contract"`
@@ -55,23 +55,84 @@ type beginSimulationResponse struct {
 }
 
 type executeSimulationRequest struct {
-	SimulationID      string                  `json:"simulationId"`
-	Session           types.SimulationSession `json:"session"`
-	SignedTx          string                  `json:"signedTx"`
-	SignedTransaction string                  `json:"signedTransaction,omitempty"`
-	RawTransaction    string                  `json:"rawTransaction,omitempty"`
+	SimulationID       string                              `json:"simulationId"`
+	Session            types.SimulationSession             `json:"session"`
+	SignedTx           string                              `json:"signedTx,omitempty"`
+	SignedTransaction  string                              `json:"signedTransaction,omitempty"`
+	RawTransaction     string                              `json:"rawTransaction,omitempty"`
+	SignedTransactions []types.SignedSimulationTransaction `json:"signedTransactions,omitempty"`
 }
 
 type executeSimulationResponse struct {
 	Report types.SimulationReport `json:"report"`
 }
 
+type performSimulationResponse struct {
+	SimulationID         string               `json:"simulationId"`
+	Network              string               `json:"network"`
+	RawTransactionSHA256 string               `json:"rawTransactionSha256"`
+	Balances             balanceSnapshot      `json:"balances"`
+	ApprovalFindings     []approvalFinding    `json:"approvalFindings"`
+	Contract             contractSnapshot     `json:"contract"`
+	Execution            executionReport      `json:"execution"`
+	FunctionCalls        []functionCallReport `json:"functionCalls,omitempty"`
+	Warnings             []string             `json:"warnings,omitempty"`
+	PerformedAt          time.Time            `json:"performedAt"`
+}
+
+type balanceSnapshot struct {
+	CallerBefore  string `json:"callerBefore"`
+	CallerAfter   string `json:"callerAfter,omitempty"`
+	AddressBefore string `json:"addressBefore"`
+	AddressAfter  string `json:"addressAfter,omitempty"`
+}
+
+type approvalFinding struct {
+	Type        string `json:"type"`
+	Selector    string `json:"selector"`
+	Description string `json:"description"`
+	Severity    string `json:"severity"`
+}
+
+type contractSnapshot struct {
+	Address        string   `json:"address"`
+	HasCode        bool     `json:"hasCode"`
+	CodeHashSHA256 string   `json:"codeHashSha256,omitempty"`
+	StateChanges   []string `json:"stateChanges,omitempty"`
+}
+
+type executionReport struct {
+	Mode              string `json:"mode"`
+	Broadcasted       bool   `json:"broadcasted"`
+	TransactionHash   string `json:"transactionHash,omitempty"`
+	Status            string `json:"status"`
+	Details           string `json:"details"`
+	ForkBackendNeeded bool   `json:"forkBackendNeeded"`
+}
+
+type functionCallReport struct {
+	Function     string   `json:"function"`
+	Signature    string   `json:"signature"`
+	PassedData   string   `json:"passedData"`
+	Status       string   `json:"status"`
+	Consequences []string `json:"consequences"`
+}
+
 func (s *Simulator) BeginSimulation(network types.Network, address common.Address, caller common.Address) (*types.SimulationSession, error) {
+	return s.beginSimulation(network, address, caller, nil)
+}
+
+func (s *Simulator) BeginContractSimulation(network types.Network, address common.Address, caller common.Address, functions []types.ContractFunction) (*types.SimulationSession, error) {
+	return s.beginSimulation(network, address, caller, functions)
+}
+
+func (s *Simulator) beginSimulation(network types.Network, address common.Address, caller common.Address, functions []types.ContractFunction) (*types.SimulationSession, error) {
 	response := beginSimulationResponse{}
 	if err := s.postJSON(beginSimulationPath, beginSimulationRequest{
-		Network: networkRPC(network),
-		Address: address.Hex(),
-		Caller:  caller.Hex(),
+		Network:   networkRPC(network),
+		Address:   address.Hex(),
+		Caller:    caller.Hex(),
+		Functions: functions,
 	}, &response); err != nil {
 		return nil, err
 	}
@@ -93,6 +154,8 @@ func (s *Simulator) BeginSimulation(network types.Network, address common.Addres
 		ID:              id,
 		RPC:             rpc,
 		ChainID:         firstNonEmpty(response.Transaction.ChainID, response.ChainID, response.ChainIDAlt),
+		Transaction:     response.Transaction,
+		Transactions:    response.Transactions,
 		Network:         network,
 		Address:         address.Hex(),
 		Caller:          caller.Hex(),
@@ -123,12 +186,44 @@ func (s *Simulator) ExecuteSignedTransaction(session types.SimulationSession, si
 	_ = json.Unmarshal(responseBody, &wrapped)
 	report := wrapped.Report
 	if reportEmpty(report) {
-		var direct types.SimulationReport
-		if err := json.Unmarshal(responseBody, &direct); err != nil {
+		var apiResponse performSimulationResponse
+		if err := json.Unmarshal(responseBody, &apiResponse); err != nil {
 			return nil, fmt.Errorf("decode simulator API response %s: %w", performSimulationPath, err)
 		}
-		report = direct
+		if apiResponse.Execution.Status != "" || apiResponse.SimulationID != "" {
+			report = reportFromPerformResponse(apiResponse, session)
+		} else {
+			var direct types.SimulationReport
+			if err := json.Unmarshal(responseBody, &direct); err != nil {
+				return nil, fmt.Errorf("decode simulator API response %s: %w", performSimulationPath, err)
+			}
+			report = direct
+		}
 	}
+	applyReportFallbacks(&report, session)
+	return &report, nil
+}
+
+func (s *Simulator) ExecuteSignedTransactions(session types.SimulationSession, signedTxs []types.SignedSimulationTransaction) (*types.SimulationReport, error) {
+	if len(signedTxs) == 0 {
+		return nil, fmt.Errorf("signed transactions are empty")
+	}
+
+	responseBody, err := s.postJSONRaw(performSimulationPath, executeSimulationRequest{
+		SimulationID:       session.ID,
+		Session:            session,
+		SignedTransactions: signedTxs,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var apiResponse performSimulationResponse
+	if err := json.Unmarshal(responseBody, &apiResponse); err != nil {
+		return nil, fmt.Errorf("decode simulator API response %s: %w", performSimulationPath, err)
+	}
+
+	report := reportFromPerformResponse(apiResponse, session)
 	applyReportFallbacks(&report, session)
 	return &report, nil
 }
@@ -219,7 +314,7 @@ func applyReportFallbacks(report *types.SimulationReport, session types.Simulati
 		report.RiskLevel = "Low"
 	}
 	if report.Summary == "" {
-		report.Summary = "Signed transaction executed by the simulator API."
+		report.Summary = "Signed transaction was tested before broadcast."
 	}
 	if len(report.BalanceChanges) == 0 {
 		report.BalanceChanges = []types.BalanceChange{
@@ -233,6 +328,172 @@ func applyReportFallbacks(report *types.SimulationReport, session types.Simulati
 		report.Calls = performedActions(session)
 	}
 	report.Warnings = meaningfulWarnings(report.Warnings)
+}
+
+func reportFromPerformResponse(response performSimulationResponse, session types.SimulationSession) types.SimulationReport {
+	report := types.SimulationReport{
+		Title:          "Contract Simulation",
+		Status:         simulationStatus(response.Execution.Status),
+		RiskLevel:      riskLevel(response),
+		GasEstimate:    session.Transaction.Gas,
+		Summary:        firstNonEmpty(response.Execution.Details, "Function simulations completed before broadcast."),
+		BalanceChanges: balanceChanges(response, session),
+		TokenApprovals: tokenApprovals(response.ApprovalFindings),
+		BytecodeChecks: []types.BytecodeCheck{
+			{
+				Address:    firstNonEmpty(response.Contract.Address, session.Address),
+				IsContract: response.Contract.HasCode,
+				Note:       codeHashNote(response.Contract.CodeHashSHA256),
+			},
+		},
+		Calls: []types.ContractCall{
+			{
+				Depth:    0,
+				From:     firstNonEmpty(session.Transaction.From, session.Caller),
+				To:       firstNonEmpty(session.Transaction.To, session.Address),
+				Function: firstNonEmpty(response.Execution.Mode, "contract simulation"),
+				Value:    firstNonEmpty(session.Transaction.Value, "0x0"),
+			},
+		},
+		FunctionCalls: functionCalls(response.FunctionCalls),
+		Events:        eventsFromPerformResponse(response),
+		Warnings:      response.Warnings,
+	}
+
+	if response.Execution.TransactionHash != "" {
+		report.Events = append(report.Events, types.EventLog{
+			Contract: firstNonEmpty(response.Contract.Address, session.Address),
+			Name:     "Transaction Hash",
+			Details:  response.Execution.TransactionHash,
+		})
+	}
+	return report
+}
+
+func functionCalls(calls []functionCallReport) []types.SimulationFunctionCall {
+	out := make([]types.SimulationFunctionCall, 0, len(calls))
+	for _, call := range calls {
+		out = append(out, types.SimulationFunctionCall{
+			Function:     call.Function,
+			Signature:    call.Signature,
+			PassedData:   call.PassedData,
+			Status:       simulationStatus(call.Status),
+			Consequences: cleanConsequences(call.Consequences),
+		})
+	}
+	return out
+}
+
+func cleanConsequences(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		normalized := strings.ToLower(strings.TrimSpace(value))
+		if normalized == "" ||
+			strings.Contains(normalized, "debug_tracetransaction") ||
+			strings.Contains(normalized, ".sha256=") {
+			continue
+		}
+		out = append(out, value)
+	}
+	return out
+}
+
+func balanceChanges(response performSimulationResponse, session types.SimulationSession) []types.BalanceChange {
+	changes := make([]types.BalanceChange, 0, 2)
+	if response.Balances.CallerBefore != "" || response.Balances.CallerAfter != "" {
+		changes = append(changes, types.BalanceChange{
+			Asset:  networkSymbol(session.Network),
+			Before: response.Balances.CallerBefore,
+			After:  response.Balances.CallerAfter,
+			Delta:  balanceDelta(response.Balances.CallerBefore, response.Balances.CallerAfter),
+		})
+	}
+	if response.Balances.AddressBefore != "" || response.Balances.AddressAfter != "" {
+		changes = append(changes, types.BalanceChange{
+			Asset:  "Contract native balance",
+			Before: response.Balances.AddressBefore,
+			After:  response.Balances.AddressAfter,
+			Delta:  balanceDelta(response.Balances.AddressBefore, response.Balances.AddressAfter),
+		})
+	}
+	return changes
+}
+
+func tokenApprovals(findings []approvalFinding) []types.TokenApproval {
+	approvals := make([]types.TokenApproval, 0, len(findings))
+	for _, finding := range findings {
+		approvals = append(approvals, types.TokenApproval{
+			Token:   firstNonEmpty(finding.Type, "approval"),
+			Spender: firstNonEmpty(finding.Selector, "unknown"),
+			Amount:  finding.Description,
+			Risk:    firstNonEmpty(finding.Severity, "medium"),
+		})
+	}
+	return approvals
+}
+
+func eventsFromPerformResponse(response performSimulationResponse) []types.EventLog {
+	events := make([]types.EventLog, 0, len(response.Contract.StateChanges)+1)
+	for _, change := range response.Contract.StateChanges {
+		events = append(events, types.EventLog{
+			Contract: response.Contract.Address,
+			Name:     "State Change",
+			Details:  change,
+		})
+	}
+	return events
+}
+
+func riskLevel(response performSimulationResponse) string {
+	level := "Low"
+	for _, finding := range response.ApprovalFindings {
+		switch strings.ToLower(finding.Severity) {
+		case "critical":
+			return "Critical"
+		case "high":
+			level = "High"
+		case "medium":
+			if level == "Low" {
+				level = "Medium"
+			}
+		}
+	}
+	if response.Execution.Status != "" && response.Execution.Status != "0x1" && !strings.EqualFold(response.Execution.Status, "success") {
+		if level == "Low" {
+			level = "Medium"
+		}
+	}
+	return level
+}
+
+func simulationStatus(status string) string {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "0x1", "1", "success", "passed":
+		return "passed"
+	case "0x0", "0", "failed", "reverted":
+		return "reverted"
+	case "":
+		return "simulated"
+	default:
+		return status
+	}
+}
+
+func codeHashNote(codeHash string) string {
+	if codeHash == "" {
+		return "Contract bytecode proof captured."
+	}
+	return "Bytecode proof sha256=" + codeHash
+}
+
+func balanceDelta(before string, after string) string {
+	if before == "" || after == "" {
+		return ""
+	}
+	if before == after {
+		return "0x0"
+	}
+	return before + " -> " + after
 }
 
 func reportEmpty(report types.SimulationReport) bool {
@@ -324,7 +585,7 @@ func bytecodeCheck(session types.SimulationSession) types.BytecodeCheck {
 		IsContract:    true,
 		RuntimeHex:    runtimeHex,
 		RuntimeBinary: runtimeBinary,
-		Note:          "Contract bytecode was reported by the simulator API.",
+		Note:          "Contract bytecode proof captured.",
 	}
 }
 

@@ -13,18 +13,20 @@ var wallet interfaces.IWallet
 var network interfaces.INetwork
 var logger interfaces.ILogger
 var simulator interfaces.ISimulator
+var contractInteractions interfaces.IContractInteractionReader
 var swaps []interfaces.ISwapRouter
 var storage interfaces.IStorage
 var register repositories.RepositoryRegister
 
 type Dependencies struct {
-	Wallet    interfaces.IWallet
-	Network   interfaces.INetwork
-	Logger    interfaces.ILogger
-	Simulator interfaces.ISimulator
-	Swaps     []interfaces.ISwapRouter
-	Storage   interfaces.IStorage
-	Register  *repositories.RepositoryRegister
+	Wallet               interfaces.IWallet
+	Network              interfaces.INetwork
+	Logger               interfaces.ILogger
+	Simulator            interfaces.ISimulator
+	ContractInteractions interfaces.IContractInteractionReader
+	Swaps                []interfaces.ISwapRouter
+	Storage              interfaces.IStorage
+	Register             *repositories.RepositoryRegister
 }
 
 func SetupDependencies() {
@@ -33,6 +35,7 @@ func SetupDependencies() {
 	network = implementations.NewNetworkProvider(register.Network)
 	wallet = implementations.NewLedger(network, register.Accounts)
 	simulator = implementations.NewSimulator()
+	contractInteractions = implementations.NewContractInteractionReader(network)
 	swapRouter := implementations.NewContractClient(network, nil)
 	router := common.HexToAddress("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D")
 	swap, err := implementations.NewUniswapV2Router(swapRouter, router)
@@ -57,6 +60,7 @@ func SetupDependenciesWith(deps Dependencies) {
 	network = deps.Network
 	logger = deps.Logger
 	simulator = deps.Simulator
+	contractInteractions = deps.ContractInteractions
 	swaps = deps.Swaps
 	storage = deps.Storage
 
@@ -93,6 +97,10 @@ func GetLogger() interfaces.ILogger {
 
 func GetSimulator() interfaces.ISimulator {
 	return simulator
+}
+
+func GetContractInteractions() interfaces.IContractInteractionReader {
+	return contractInteractions
 }
 
 func GetSwaps() []interfaces.ISwapRouter {

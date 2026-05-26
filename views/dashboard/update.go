@@ -138,6 +138,10 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg {
 			return types.NavigateMsg{Screen: enums.ScreenContractInteraction}
 		}
+	case "i", "I":
+		return m, func() tea.Msg {
+			return types.NavigateMsg{Screen: enums.ScreenImportContract}
+		}
 	case "N":
 		m.networkDialog = networkDialog.New()
 		m.networkDialog.Visible = true

@@ -10,6 +10,7 @@ import (
 	"bos/views/contractinteraction"
 	"bos/views/dashboard"
 	"bos/views/errorview"
+	"bos/views/importcontract"
 	"bos/views/loading"
 	"bos/views/networksetup"
 	"bos/views/sending"
@@ -24,9 +25,10 @@ type Model struct {
 	current tea.Model
 	modal   tea.Model
 
-	wallet   interfaces.IWallet
-	network  interfaces.INetwork
-	register repositories.RepositoryRegister
+	wallet               interfaces.IWallet
+	network              interfaces.INetwork
+	register             repositories.RepositoryRegister
+	contractInteractions interfaces.IContractInteractionReader
 
 	width  int
 	height int
@@ -34,17 +36,18 @@ type Model struct {
 	dashboard *dashboard.Model
 }
 
-func New(wallet interfaces.IWallet, network interfaces.INetwork, register repositories.RepositoryRegister) *Model {
+func New(wallet interfaces.IWallet, network interfaces.INetwork, register repositories.RepositoryRegister, contractInteractions interfaces.IContractInteractionReader) *Model {
 	current := tea.Model(loading.New(wallet, network, register.Accounts))
 	if !hasActiveNetwork(network.Network()) {
 		current = networksetup.New(network, register)
 	}
 
 	return &Model{
-		wallet:   wallet,
-		network:  network,
-		current:  current,
-		register: register,
+		wallet:               wallet,
+		network:              network,
+		current:              current,
+		register:             register,
+		contractInteractions: contractInteractions,
 	}
 }
 
@@ -199,6 +202,11 @@ func (m *Model) navigate(msg types.NavigateMsg) tea.Cmd {
 		payload, _ := msg.Payload.(types.ContractInteractionPayload)
 		m.current = contractinteraction.New(payload)
 		return resizeCmd(m.width, m.height)
+
+	case enums.ScreenImportContract:
+		m.modal = nil
+		m.current = importcontract.New(m.contractInteractions)
+		return tea.Batch(resizeCmd(m.width, m.height), m.current.Init())
 
 	case enums.ScreenError:
 		m.modal = nil

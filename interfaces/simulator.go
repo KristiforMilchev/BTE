@@ -8,5 +8,7 @@ import (
 
 type ISimulator interface {
 	BeginSimulation(network types.Network, address common.Address, caller common.Address) (*types.SimulationSession, error)
+	BeginContractSimulation(network types.Network, address common.Address, caller common.Address, functions []types.ContractFunction) (*types.SimulationSession, error)
 	ExecuteSignedTransaction(session types.SimulationSession, signedTx []byte) (*types.SimulationReport, error)
+	ExecuteSignedTransactions(session types.SimulationSession, signedTxs []types.SignedSimulationTransaction) (*types.SimulationReport, error)
 }
