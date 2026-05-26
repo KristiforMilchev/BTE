@@ -1,10 +1,16 @@
 package types
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/google/uuid"
+)
 
 type Network struct {
-	Name   *string
-	Symbol *string
-	Rpc    *string
-	Chain  *big.Int
+	Id       uuid.UUID
+	Name     *string
+	Symbol   *string
+	Rpc      *string
+	Chain    *big.Int
+	Explorer *string
 }

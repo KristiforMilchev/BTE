@@ -1,12 +1,12 @@
 package implementations
 
 import (
-	"bos/constants"
+	"bos/repositories"
 	"bos/types"
 	"bos/utils"
 	"context"
-	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"time"
 
@@ -15,7 +15,8 @@ import (
 )
 
 type Network struct {
-	network types.Network
+	network           types.Network
+	networkRepository repositories.NetworkRepository
 }
 
 func (n *Network) Set(rpc *string, name *string, symbol *string, chain big.Int) error {
@@ -29,38 +30,31 @@ func (n *Network) Set(rpc *string, name *string, symbol *string, chain big.Int) 
 }
 
 func (n *Network) Networks() (*[]types.Network, error) {
-	//TODO implement after refactor
-	return nil, nil
+	return n.networkRepository.Networks()
 }
 
-func (n *Network) Change(rpc *string) error {
-	//TODO implement after refactor
-	return nil
+func (n *Network) Change(network *types.Network) {
+	n.network = *network
 }
+
 func (n *Network) Active() (*ethclient.Client, *big.Int, context.Context, context.CancelFunc, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-
-	if constants.RpcURL == "" {
-		cancel()
-		return nil, nil, nil, nil, errors.New("RPC URL is empty")
-	}
-
-	client, err := ethclient.DialContext(ctx, constants.RpcURL)
+	client, err := ethclient.DialContext(ctx, *n.network.Rpc)
 	if err != nil {
 		cancel()
-		return nil, nil, nil, nil, fmt.Errorf("failed to connect to RPC %q: %w", constants.RpcURL, err)
+		return nil, nil, nil, nil, fmt.Errorf("failed to connect to RPC %q: %w", *n.network.Rpc, err)
 	}
 
 	if client == nil {
 		cancel()
-		return nil, nil, nil, nil, fmt.Errorf("failed to connect to RPC %q: ethclient returned nil client", constants.RpcURL)
+		return nil, nil, nil, nil, fmt.Errorf("failed to connect to RPC %q: ethclient returned nil client", *n.network.Rpc)
 	}
 
 	chainID, err := client.ChainID(ctx)
 	if err != nil {
 		client.Close()
 		cancel()
-		return nil, nil, nil, nil, fmt.Errorf("failed to read chain ID from RPC %q: %w", constants.RpcURL, err)
+		return nil, nil, nil, nil, fmt.Errorf("failed to read chain ID from RPC %q: %w", *n.network.Rpc, err)
 	}
 
 	return client, chainID, ctx, cancel, nil
@@ -78,7 +72,7 @@ func (n *Network) Balance(address common.Address) (*types.NetworkBalanace, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to get balance: %w", err)
 	}
-
+	log.Printf("Balance is: %s", balance)
 	ether := utils.WeiToEther(balance)
 
 	return &types.NetworkBalanace{
@@ -88,16 +82,21 @@ func (n *Network) Balance(address common.Address) (*types.NetworkBalanace, error
 	}, nil
 }
 
-func NewNetworkProvider() *Network {
-	rpc := constants.RpcURL
-	symbol := "BGC"
-	name := "Blockcert"
-	return &Network{
-		network: types.Network{
-			Name:   &name,
-			Symbol: &symbol,
-			Rpc:    &rpc,
-			Chain:  big.NewInt(1337),
-		},
+func (n *Network) Network() types.Network {
+	return n.network
+}
+
+func NewNetworkProvider(networkRepository repositories.NetworkRepository) *Network {
+	provider := &Network{networkRepository: networkRepository}
+
+	networks, err := networkRepository.Networks()
+	if err != nil {
+		log.Printf("Failed to load saved networks on startup -> %s", err)
+		return provider
 	}
+	if networks != nil && len(*networks) > 0 {
+		provider.network = (*networks)[0]
+	}
+
+	return provider
 }

@@ -12,7 +12,8 @@ import (
 type INetwork interface {
 	Set(rpc *string, name *string, symbol *string, chain big.Int) error
 	Networks() (*[]types.Network, error)
-	Change(rpc *string) error
+	Change(network *types.Network)
 	Active() (*ethclient.Client, *big.Int, context.Context, context.CancelFunc, error)
 	Balance(address common.Address) (*types.NetworkBalanace, error)
+	Network() types.Network
 }
