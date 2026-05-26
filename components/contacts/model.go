@@ -1,7 +1,9 @@
 package contacts
 
 import (
+	"bos/di"
 	"bos/types"
+	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -22,6 +24,29 @@ func (m Model) SelectedRecipient() types.Contact {
 }
 
 func (m *Model) Init() tea.Cmd { return nil }
+
+func (m *Model) Load() {
+	contacts, err := di.Repositories().Contacts.Contacts()
+	if err != nil {
+		log.Printf("can't load contacts -> %s", err)
+		return
+	}
+	m.SetContacts(*contacts)
+}
+
+func (m *Model) SetContacts(contacts []types.Contact) {
+	m.contacts = contacts
+	if len(m.contacts) == 0 {
+		m.selectedContact = 0
+		return
+	}
+	if m.selectedContact < 0 {
+		m.selectedContact = 0
+	}
+	if m.selectedContact >= len(m.contacts) {
+		m.selectedContact = len(m.contacts) - 1
+	}
+}
 
 func NewContacts() *Model {
 	contacts := []types.Contact{

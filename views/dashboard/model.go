@@ -2,11 +2,11 @@ package dashboard
 
 import (
 	"bos/components/amount"
+	contactDialog "bos/components/contact_dialog"
 	"bos/components/contacts"
 	networkDialog "bos/components/network_dialog"
 	networksPopup "bos/components/network_popup"
 	tokenlist "bos/components/token_list"
-	transactionPreview "bos/components/transaction_preview"
 	transactionsComponent "bos/components/transactions"
 	"bos/enums"
 	"bos/interfaces"
@@ -38,13 +38,13 @@ type Model struct {
 	focus enums.FocusArea
 
 	contacts     *contacts.Model
-	transaction  *transactionPreview.Model
 	amount       *amount.Model
 	tokenList    *tokenlist.Model
 	transactions *transactionsComponent.Model
 
 	networkDialog *networkDialog.Model
 	networkPopup  *networksPopup.Model
+	contactDialog *contactDialog.Model
 }
 
 func New(config Config) *Model {
@@ -57,10 +57,11 @@ func New(config Config) *Model {
 		amount:        amount.New(),
 		tokenList:     tokenlist.New(),
 		transactions:  transactionsComponent.New(),
-		transaction:   transactionPreview.New(6),
 		networkDialog: networkDialog.New(),
 		networkPopup:  networksPopup.New(),
+		contactDialog: contactDialog.New(),
 	}
+	model.contacts.Load()
 	model.transactions.Load()
 	return model
 }
@@ -136,7 +137,6 @@ func (m *Model) buildDraft() (types.TxDraft, bool) {
 
 	return types.TxDraft{
 		FromAddress: m.address, RecipientName: m.contacts.SelectedRecipient().Name, RecipientAddress: m.contacts.SelectedRecipient().Address,
-		Amount: amount, Asset: m.tokenList.SelectedAsset(), EstimatedFee: m.transaction.EstimatedFee(),
-		SimulationStatus: m.transaction.SimulationStatus(), RiskLevel: m.transaction.RiskLevel(),
+		Amount: amount, Asset: m.tokenList.SelectedAsset(),
 	}, true
 }
