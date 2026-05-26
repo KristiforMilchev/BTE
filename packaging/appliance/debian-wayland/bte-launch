@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export TERM="${TERM:-foot}"
+export COLORTERM="${COLORTERM:-truecolor}"
+export BTE_DATA_DIR="${BTE_DATA_DIR:-/var/lib/bte}"
+
+cd /var/lib/bte
+exec /usr/local/bin/bte
+

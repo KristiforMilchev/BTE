@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Linux virtual consoles use a 16-color palette. These entries mirror the BTE
+# Lip Gloss theme closely enough for ANSI color fallback on tty1.
+printf '\033]P0101419'
+printf '\033]P1D64545'
+printf '\033]P23BA55D'
+printf '\033]P3F0B429'
+printf '\033]P44A90E2'
+printf '\033]P52b3746'
+printf '\033]P6263241'
+printf '\033]P7DDE5EE'
+printf '\033]P86F7D8C'
+printf '\033]P9D64545'
+printf '\033]PA3BA55D'
+printf '\033]PBF0B429'
+printf '\033]PC4A90E2'
+printf '\033]PD2b3746'
+printf '\033]PE263241'
+printf '\033]PFDDE5EE'
+
+printf '\033[40m\033[37m\033[2J\033[H'
