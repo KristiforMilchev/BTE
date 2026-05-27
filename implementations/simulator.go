@@ -332,11 +332,11 @@ func applyReportFallbacks(report *types.SimulationReport, session types.Simulati
 
 func reportFromPerformResponse(response performSimulationResponse, session types.SimulationSession) types.SimulationReport {
 	report := types.SimulationReport{
-		Title:          "Contract Simulation",
+		Title:          simulationTitle(session),
 		Status:         simulationStatus(response.Execution.Status),
 		RiskLevel:      riskLevel(response),
 		GasEstimate:    session.Transaction.Gas,
-		Summary:        firstNonEmpty(response.Execution.Details, "Function simulations completed before broadcast."),
+		Summary:        simulationSummary(response, session),
 		BalanceChanges: balanceChanges(response, session),
 		TokenApprovals: tokenApprovals(response.ApprovalFindings),
 		BytecodeChecks: []types.BytecodeCheck{
@@ -351,8 +351,8 @@ func reportFromPerformResponse(response performSimulationResponse, session types
 				Depth:    0,
 				From:     firstNonEmpty(session.Transaction.From, session.Caller),
 				To:       firstNonEmpty(session.Transaction.To, session.Address),
-				Function: firstNonEmpty(response.Execution.Mode, "contract simulation"),
-				Value:    firstNonEmpty(session.Transaction.Value, "0x0"),
+				Function: simulationAction(response, session),
+				Value:    simulationValue(session),
 			},
 		},
 		FunctionCalls: functionCalls(response.FunctionCalls),
@@ -368,6 +368,37 @@ func reportFromPerformResponse(response performSimulationResponse, session types
 		})
 	}
 	return report
+}
+
+func simulationTitle(session types.SimulationSession) string {
+	if session.AddressContract {
+		return "Contract Simulation"
+	}
+	return "Transaction Simulation"
+}
+
+func simulationSummary(response performSimulationResponse, session types.SimulationSession) string {
+	if response.Execution.Details != "" {
+		return response.Execution.Details
+	}
+	if session.AddressContract {
+		return "Function simulations completed before broadcast."
+	}
+	return "Native transfer simulation completed before broadcast."
+}
+
+func simulationAction(response performSimulationResponse, session types.SimulationSession) string {
+	if session.AddressContract {
+		return firstNonEmpty(response.Execution.Mode, "contract simulation")
+	}
+	return "regular wallet transfer"
+}
+
+func simulationValue(session types.SimulationSession) string {
+	if session.Amount != "" {
+		return session.Amount + " " + sessionAsset(session)
+	}
+	return firstNonEmpty(session.Transaction.Value, "0x0")
 }
 
 func functionCalls(calls []functionCallReport) []types.SimulationFunctionCall {
@@ -410,13 +441,20 @@ func balanceChanges(response performSimulationResponse, session types.Simulation
 	}
 	if response.Balances.AddressBefore != "" || response.Balances.AddressAfter != "" {
 		changes = append(changes, types.BalanceChange{
-			Asset:  "Contract native balance",
+			Asset:  recipientBalanceAsset(session),
 			Before: response.Balances.AddressBefore,
 			After:  response.Balances.AddressAfter,
 			Delta:  balanceDelta(response.Balances.AddressBefore, response.Balances.AddressAfter),
 		})
 	}
 	return changes
+}
+
+func recipientBalanceAsset(session types.SimulationSession) string {
+	if session.AddressContract {
+		return "Contract native balance"
+	}
+	return "Recipient native balance"
 }
 
 func tokenApprovals(findings []approvalFinding) []types.TokenApproval {

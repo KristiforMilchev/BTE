@@ -241,6 +241,57 @@ func TestSimulatorCallsBeginAndExecuteAPI(t *testing.T) {
 	}
 }
 
+func TestSimulatorNativeTransferReportIsNotContractSimulation(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Path != "/v1/simulation/perform" {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+
+		return jsonResponse(`{"simulationId":"session-1","network":"http://source-rpc","rawTransactionSha256":"0xabc","balances":{"callerBefore":"0x10","callerAfter":"0x09","addressBefore":"0x00","addressAfter":"0x01"},"contract":{"address":"0x2222222222222222222222222222222222222222","hasCode":false},"execution":{"mode":"ganache-fork","broadcasted":false,"transactionHash":"0xtx","status":"0x1","forkBackendNeeded":false}}`), nil
+	})
+
+	name := "Local"
+	rpc := "http://source-rpc"
+	symbol := "ETH"
+	session := types.SimulationSession{
+		ID:      "session-1",
+		Address: "0x2222222222222222222222222222222222222222",
+		Caller:  "0x1111111111111111111111111111111111111111",
+		Amount:  "0.1",
+		Asset:   "ETH",
+		Network: types.Network{
+			Name:   &name,
+			Rpc:    &rpc,
+			Symbol: &symbol,
+			Chain:  big.NewInt(1337),
+		},
+		Transaction: types.LedgerTransaction{
+			From:  "0x1111111111111111111111111111111111111111",
+			To:    "0x2222222222222222222222222222222222222222",
+			Value: "0x16345785d8a0000",
+		},
+	}
+
+	simulator := implementations.NewSimulatorWithHTTPClient("http://simulator.test", &http.Client{Transport: transport})
+	report, err := simulator.ExecuteSignedTransaction(session, []byte{0x01, 0x02, 0x03})
+	if err != nil {
+		t.Fatalf("ExecuteSignedTransaction() returned error: %v", err)
+	}
+
+	if report.Title != "Transaction Simulation" {
+		t.Fatalf("report title = %q, want Transaction Simulation", report.Title)
+	}
+	if len(report.Calls) != 1 || report.Calls[0].Function != "regular wallet transfer" {
+		t.Fatalf("report calls = %+v", report.Calls)
+	}
+	if len(report.BalanceChanges) != 2 || report.BalanceChanges[1].Asset != "Recipient native balance" {
+		t.Fatalf("balance changes = %+v", report.BalanceChanges)
+	}
+	if len(report.BytecodeChecks) != 1 || report.BytecodeChecks[0].IsContract {
+		t.Fatalf("bytecode checks = %+v", report.BytecodeChecks)
+	}
+}
+
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
