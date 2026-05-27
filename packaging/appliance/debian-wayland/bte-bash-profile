@@ -1,6 +1,0 @@
-if [[ -z "${BTE_KIOSK_STARTED:-}" && "$(tty)" == "/dev/tty1" ]]; then
-  export BTE_KIOSK_STARTED=1
-
-  /usr/local/bin/bte-console-colors
-  exec /usr/local/bin/bte-launch
-fi

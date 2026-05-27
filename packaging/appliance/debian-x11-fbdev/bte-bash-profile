@@ -1,0 +1,50 @@
+if [[ -z "${BTE_KIOSK_STARTED:-}" && "$(tty)" == "/dev/tty1" ]]; then
+  export BTE_KIOSK_STARTED=1
+  LOG_FILE=/var/lib/bte/bte-session.log
+  export LANG="${LANG:-en_US.UTF-8}"
+  export LANGUAGE="${LANGUAGE:-en_US:en}"
+  export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+  export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-x11}"
+  export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-bte}"
+
+  if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+    export XDG_RUNTIME_DIR="/tmp/bte-runtime-$(id -u)"
+    mkdir -p "${XDG_RUNTIME_DIR}"
+    chmod 700 "${XDG_RUNTIME_DIR}"
+  fi
+
+  /usr/local/bin/bte-console-colors
+  exec > >(tee -a "${LOG_FILE}") 2>&1
+  echo "BTE session launcher reached tty1 at $(date -Is)"
+  echo "Kernel command line: $(cat /proc/cmdline)"
+  echo "DRM devices at launcher start:"
+  ls -l /dev/dri 2>/dev/null || true
+  echo "DRM card details at launcher start:"
+  for card_path in /sys/class/drm/card*/device; do
+    [[ -e "${card_path}" ]] || continue
+    card_name="$(basename "$(dirname "${card_path}")")"
+    driver_name="$(basename "$(readlink -f "${card_path}/driver" 2>/dev/null)" 2>/dev/null || true)"
+    vendor_id="$(cat "${card_path}/vendor" 2>/dev/null || true)"
+    device_id="$(cat "${card_path}/device" 2>/dev/null || true)"
+    boot_vga="$(cat "${card_path}/boot_vga" 2>/dev/null || true)"
+    echo "${card_name}: driver=${driver_name:-unknown} vendor=${vendor_id:-unknown} device=${device_id:-unknown} boot_vga=${boot_vga:-unknown}"
+  done
+  echo "Loaded Nvidia modules at launcher start:"
+  lsmod | awk '$1 ~ /^nvidia/ { print }' || true
+
+  if [[ "${BTE_RAW_CONSOLE:-0}" != "1" && -x /usr/bin/startx && -x /usr/bin/xterm && -x /usr/local/bin/bte-xsession ]]; then
+    echo "Starting BTE X11 framebuffer kiosk."
+    echo "Framebuffer devices before starting Xorg:"
+    ls -l /dev/fb* 2>/dev/null || true
+
+    timeout --foreground "${BTE_XORG_TIMEOUT:-30}" startx /usr/local/bin/bte-xsession -- :0 vt1 -nolisten tcp
+    x_status="$?"
+
+    echo "BTE X11 kiosk exited with status ${x_status}. Falling back to raw console."
+    sleep 3
+  else
+    echo "Starting BTE raw console."
+  fi
+
+  exec /usr/local/bin/bte-launch
+fi

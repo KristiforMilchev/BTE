@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export TERM="${TERM:-xterm-256color}"
+export COLORTERM="${COLORTERM:-truecolor}"
+export LANG="${LANG:-en_US.UTF-8}"
+export LANGUAGE="${LANGUAGE:-en_US:en}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+
+xset -dpms s off s noblank 2>/dev/null || true
+xsetroot -solid black 2>/dev/null || true
+
+openbox >/var/lib/bte/openbox.log 2>&1 &
+openbox_pid="$!"
+
+cleanup() {
+  kill "${openbox_pid}" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+exec xterm \
+  -u8 \
+  -lc \
+  -en UTF-8 \
+  -fullscreen \
+  -fa "DejaVu Sans Mono" \
+  -fs 14 \
+  -bg black \
+  -fg white \
+  -cr white \
+  +sb \
+  -e /usr/local/bin/bte-launch

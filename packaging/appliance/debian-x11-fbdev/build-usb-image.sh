@@ -9,13 +9,14 @@ fi
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 
-IMAGE_PATH="${1:-${REPO_ROOT}/build/bte-debian-wayland-amd64.img}"
-IMAGE_SIZE="${BTE_IMAGE_SIZE:-4G}"
+IMAGE_PATH="${1:-${REPO_ROOT}/build/bte-debian-x11-fbdev-amd64.img}"
+IMAGE_SIZE="${BTE_IMAGE_SIZE:-8G}"
 DEBIAN_SUITE="${BTE_DEBIAN_SUITE:-bookworm}"
 DEBIAN_ARCH="${BTE_DEBIAN_ARCH:-amd64}"
 DEBIAN_MIRROR="${BTE_DEBIAN_MIRROR:-http://deb.debian.org/debian}"
 BINARY_PATH="${BTE_BINARY_PATH:-${REPO_ROOT}/bos}"
 BTE_NAMESERVERS="${BTE_NAMESERVERS:-}"
+BTE_DEBUG_PASSWORD="${BTE_DEBUG_PASSWORD:-bte}"
 
 required_commands=(
   blkid
@@ -112,6 +113,7 @@ image_chroot() {
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     LANG=C \
     LC_ALL=C \
+    BTE_DEBUG_PASSWORD="${BTE_DEBUG_PASSWORD}" \
     "$@"
 }
 
@@ -170,23 +172,44 @@ apt_get() {
     "$@"
 }
 
+sed -i -E "s/^(deb .* )main$/\1main contrib non-free non-free-firmware/" /etc/apt/sources.list
 apt_get update
 apt_get install -y --no-install-recommends \
-  cage \
-  dbus-user-session \
-  foot \
   fonts-dejavu-core \
   fonts-jetbrains-mono \
+  firmware-amd-graphics \
+  firmware-linux-free \
+  firmware-misc-nonfree \
+  firmware-nvidia-gsp \
+  firmware-realtek \
   grub-common \
   grub-efi-amd64-bin \
   grub-pc-bin \
   grub2-common \
   initramfs-tools \
+  libdrm-amdgpu1 \
+  libegl-mesa0 \
+  libgbm1 \
   libpam-systemd \
+  libvulkan1 \
+  libgl1-mesa-dri \
   linux-image-amd64 \
+  linux-headers-amd64 \
   locales \
+  mesa-vulkan-drivers \
+  openbox \
+  sudo \
   systemd-resolved \
   udev \
+  x11-xserver-utils \
+  xinit \
+  xserver-xorg-core \
+  xserver-xorg-video-fbdev \
+  xserver-xorg-input-all \
+  xserver-xorg-legacy \
+  xserver-xorg-video-vesa \
+  xserver-xorg-video-all \
+  xterm \
   zstd
 '
 
@@ -222,7 +245,11 @@ EOF
 
 mkdir -p \
   "${ROOT_MOUNT}/etc/bte" \
+  "${ROOT_MOUNT}/etc/X11" \
+  "${ROOT_MOUNT}/etc/X11/xorg.conf.d" \
+  "${ROOT_MOUNT}/etc/sudoers.d" \
   "${ROOT_MOUNT}/etc/systemd/system/getty@tty1.service.d" \
+  "${ROOT_MOUNT}/etc/systemd/system/getty@tty2.service.d" \
   "${ROOT_MOUNT}/etc/systemd/system" \
   "${ROOT_MOUNT}/etc/udev/rules.d" \
   "${ROOT_MOUNT}/usr/local/bin" \
@@ -231,47 +258,99 @@ mkdir -p \
 
 install -m 0755 "${BINARY_PATH}" "${ROOT_MOUNT}/usr/local/bin/bte"
 install -m 0755 "${SCRIPT_DIR}/bte-launch" "${ROOT_MOUNT}/usr/local/bin/bte-launch"
+install -m 0755 "${SCRIPT_DIR}/bte-xsession" "${ROOT_MOUNT}/usr/local/bin/bte-xsession"
 install -m 0755 "${SCRIPT_DIR}/bte-console-colors" "${ROOT_MOUNT}/usr/local/bin/bte-console-colors"
 install -m 0644 "${SCRIPT_DIR}/bte-bash-profile" "${ROOT_MOUNT}/var/lib/bte/.bash_profile"
-install -m 0644 "${SCRIPT_DIR}/foot.ini" "${ROOT_MOUNT}/etc/bte/foot.ini"
-install -m 0644 "${SCRIPT_DIR}/bte-kiosk.service" "${ROOT_MOUNT}/etc/systemd/system/bte-kiosk.service"
 install -m 0644 "${SCRIPT_DIR}/ledger.rules" "${ROOT_MOUNT}/etc/udev/rules.d/20-ledger.rules"
 install -m 0644 "${REPO_ROOT}/sql/schema.sql" "${ROOT_MOUNT}/var/lib/bte/sql/schema.sql"
 
+cat >"${ROOT_MOUNT}/etc/sudoers.d/90-bte-debug" <<'EOF'
+bte ALL=(ALL) NOPASSWD:ALL
+EOF
+chmod 0440 "${ROOT_MOUNT}/etc/sudoers.d/90-bte-debug"
+
+cat >"${ROOT_MOUNT}/etc/X11/Xwrapper.config" <<'EOF'
+allowed_users=console
+needs_root_rights=auto
+EOF
+
+cat >"${ROOT_MOUNT}/etc/X11/xorg.conf" <<'EOF'
+Section "Device"
+    Identifier "BTE Framebuffer"
+    Driver "fbdev"
+    Option "fbdev" "/dev/fb0"
+EndSection
+
+Section "Monitor"
+    Identifier "BTE Monitor"
+EndSection
+
+Section "Screen"
+    Identifier "BTE Screen"
+    Device "BTE Framebuffer"
+    Monitor "BTE Monitor"
+    DefaultDepth 24
+EndSection
+
+Section "ServerFlags"
+    Option "AutoAddGPU" "false"
+EndSection
+EOF
+
 cat >"${ROOT_MOUNT}/etc/systemd/system/getty@tty1.service.d/autologin.conf" <<'EOF'
+[Unit]
+After=systemd-modules-load.service
+
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin bte --noclear %I $TERM
+ExecStart=-/sbin/agetty --autologin bte --noclear %I linux
+EOF
+
+cat >"${ROOT_MOUNT}/etc/systemd/system/getty@tty2.service.d/autologin.conf" <<'EOF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin bte --noclear %I linux
 EOF
 
 image_chroot /bin/bash -c '
 set -euo pipefail
-for group_name in plugdev input video render; do
+for group_name in adm plugdev input video render systemd-journal; do
   if ! getent group "${group_name}" >/dev/null; then
     groupadd --system "${group_name}"
   fi
 done
 
 if ! id bte >/dev/null 2>&1; then
-  useradd --system --create-home --home-dir /var/lib/bte --shell /bin/bash --groups plugdev,input,video,render bte
+  useradd --create-home --home-dir /var/lib/bte --shell /bin/bash --groups adm,plugdev,input,video,render,systemd-journal bte
+else
+  usermod --append --groups adm,plugdev,input,video,render,systemd-journal bte
 fi
 
+echo "bte:${BTE_DEBUG_PASSWORD}" | chpasswd
 chown -R bte:bte /var/lib/bte
 sed -i "s/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/" /etc/locale.gen
 locale-gen
+cat >/etc/default/locale <<EOF
+LANG=en_US.UTF-8
+LANGUAGE=en_US:en
+LC_ALL=en_US.UTF-8
+EOF
 '
 
 systemctl --root="${ROOT_MOUNT}" enable systemd-networkd.service
+systemctl --root="${ROOT_MOUNT}" disable systemd-networkd-wait-online.service || true
 systemctl --root="${ROOT_MOUNT}" enable systemd-resolved.service
 systemctl --root="${ROOT_MOUNT}" enable getty@tty1.service
-systemctl --root="${ROOT_MOUNT}" disable bte-kiosk.service || true
+systemctl --root="${ROOT_MOUNT}" enable getty@tty2.service
+echo "Configured tty1 autologin launcher for X11 framebuffer BTE."
+echo "Configured tty2 autologin recovery console for user bte."
 
 mkdir -p "${ROOT_MOUNT}/boot/grub"
 cat >"${ROOT_MOUNT}/etc/default/grub" <<'EOF'
 GRUB_DEFAULT=0
 GRUB_TIMEOUT=1
 GRUB_DISTRIBUTOR="BTE"
-GRUB_CMDLINE_LINUX_DEFAULT="quiet"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet nomodeset"
 GRUB_CMDLINE_LINUX=""
 EOF
 
@@ -288,5 +367,8 @@ rm -f "${ROOT_MOUNT}/etc/resolv.conf"
 ln -s /run/systemd/resolve/stub-resolv.conf "${ROOT_MOUNT}/etc/resolv.conf"
 
 sync
+if [[ -n "${SUDO_UID:-}" && -n "${SUDO_GID:-}" ]]; then
+  chown "${SUDO_UID}:${SUDO_GID}" "${IMAGE_PATH}"
+fi
 echo "Created flashable USB image: ${IMAGE_PATH}"
 echo "Write it to USB with: sudo dd if=${IMAGE_PATH} of=/dev/sdX bs=4M status=progress conv=fsync"
